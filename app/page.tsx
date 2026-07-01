@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Html5QrcodeScanner } from 'html5-qrcode'
+import { QRCodeSVG } from 'qrcode.react'
 
 type Bobine = {
   id: number
@@ -13,6 +14,8 @@ type Bobine = {
   num_commande_fabrication: string | null
   reception: {
     code_fournisseur: string
+    num_commande: string
+    num_type_produit: string
     matiere: string
     type_materiel: string
     diametre_fil: string | null
@@ -20,6 +23,7 @@ type Bobine = {
     longueur_feuillard: string | null
     durete: string
     revetement: string
+    date_reception: string
   }
 }
 
@@ -68,6 +72,10 @@ export default function Home() {
   const [numCommandeFabrication, setNumCommandeFabrication] = useState('')
   const [poidsRestant, setPoidsRestant] = useState('')
   const [lieuDestination, setLieuDestination] = useState('STOCK_PRINCIPAL')
+
+  // État pour l'impression d'étiquette
+  const [showEtiquette, setShowEtiquette] = useState(false)
+  const [bobineToPrint, setBobineToPrint] = useState<Bobine | null>(null)
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
@@ -281,6 +289,15 @@ export default function Home() {
     }
   }
 
+  // Impression étiquette
+  const handleImprimerEtiquette = (bobine: Bobine) => {
+    setBobineToPrint(bobine)
+    setShowEtiquette(true)
+    setTimeout(() => {
+      window.print()
+    }, 100)
+  }
+
   const exporterCSV = async (type: 'stock' | 'consommation') => {
     const url = type === 'stock' 
       ? '/api/export/stock'
@@ -473,6 +490,80 @@ export default function Home() {
           )}
         </div>
       </div>
+    )
+  }
+
+  // Modal Étiquette (pour impression)
+  if (showEtiquette && bobineToPrint) {
+    const r = bobineToPrint.reception
+    const dimension = r.type_materiel === 'Fil' 
+      ? `Ø${r.diametre_fil} mm`
+      : `${r.largeur_feuillard} x ${r.longueur_feuillard} mm`
+
+    return (
+      <>
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold text-blue-900">🏷️ Étiquette A6</h1>
+              <button onClick={() => setShowEtiquette(false)} className="text-red-600 hover:text-red-800">
+                ✕ Fermer
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <button onClick={() => window.print()} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
+                🖨️ Imprimer
+              </button>
+            </div>
+
+            {/* Étiquette A6 - format 105mm x 148mm */}
+            <div id="etiquette" className="border-2 border-black p-4 mx-auto" style={{width: '105mm', height: '148mm'}}>
+              <div className="text-center mb-3">
+                <h2 className="text-xl font-bold">{r.code_fournisseur} - Cmd {r.num_commande}</h2>
+                <p className="text-lg font-mono font-bold mt-2">{bobineToPrint.code_bobine}</p>
+              </div>
+
+              <div className="flex justify-center mb-3">
+                <QRCodeSVG value={bobineToPrint.code_bobine} size={120} />
+              </div>
+
+              <div className="text-sm space-y-1">
+                <p><strong>Type :</strong> {r.type_materiel}</p>
+                <p><strong>Dimension :</strong> {dimension}</p>
+                <p><strong>Matière :</strong> {r.matiere}</p>
+                <p><strong>Dureté :</strong> {r.durete}</p>
+                <p><strong>Revêtement :</strong> {r.revetement}</p>
+                <p><strong>Poids initial :</strong> {bobineToPrint.poids_initial} kg</p>
+                <p><strong>Date réception :</strong> {new Date(r.date_reception).toLocaleDateString('fr-FR')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style jsx global>{`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #etiquette, #etiquette * {
+              visibility: visible;
+            }
+            #etiquette {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 105mm;
+              height: 148mm;
+              border: none;
+            }
+            @page {
+              size: A6;
+              margin: 0;
+            }
+          }
+        `}</style>
+      </>
     )
   }
 
@@ -727,6 +818,7 @@ export default function Home() {
                   <th className="px-3 py-2 text-left">Dimension</th>
                   <th className="px-3 py-2 text-right">Poids</th>
                   <th className="px-3 py-2 text-center">Statut</th>
+                  <th className="px-3 py-2 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -744,6 +836,12 @@ export default function Home() {
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatutBadge(b.statut)}`}>
                           {b.statut}
                         </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <button onClick={() => handleImprimerEtiquette(b)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">
+                          🏷️ Étiquette
+                        </button>
                       </td>
                     </tr>
                   )
