@@ -75,7 +75,13 @@ export default function Home() {
 
   // État pour l'impression d'étiquette
   const [showEtiquette, setShowEtiquette] = useState(false)
-  const [bobineToPrint, setBobineToPrint] = useState<Bobine | null>(null)
+  const [bobinesToPrint, setBobinesToPrint] = useState<Bobine[]>([])
+  const [printMode, setPrintMode] = useState<'single' | 'lot'>('single')
+
+  // État pour les stats de fabrication
+  const [showStats, setShowStats] = useState(false)
+  const [commandeFilter, setCommandeFilter] = useState('')
+  const [statsData, setStatsData] = useState<any>(null)
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
@@ -289,19 +295,79 @@ export default function Home() {
     }
   }
 
-  // Impression étiquette
+  // Impression étiquette unique
   const handleImprimerEtiquette = (bobine: Bobine) => {
-    setBobineToPrint(bobine)
+    setBobinesToPrint([bobine])
+    setPrintMode('single')
     setShowEtiquette(true)
-    setTimeout(() => {
-      window.print()
-    }, 100)
   }
 
-  const exporterCSV = async (type: 'stock' | 'consommation') => {
-    const url = type === 'stock' 
-      ? '/api/export/stock'
-      : `/api/export/consommation?mois=${moisConso}`
+  // Impression toutes les étiquettes d'un lot
+  const handleImprimerLot = (codeFournisseur: string, numCommande: string, numTypeProduit: string) => {
+    const bobinesDuLot = bobines.filter(b => 
+      b.reception.code_fournisseur === codeFournisseur &&
+      b.reception.num_commande === numCommande &&
+      b.reception.num_type_produit === numTypeProduit
+    )
+    
+    if (bobinesDuLot.length === 0) {
+      alert('❌ Aucune bobine trouvée pour ce lot')
+      return
+    }
+    
+    setBobinesToPrint(bobinesDuLot)
+    setPrintMode('lot')
+    setShowEtiquette(true)
+  }
+
+  // Stats de fabrication
+  const handleCalculerStats = async () => {
+    if (!commandeFilter) {
+      alert('Veuillez entrer un N° de commande')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/export/mouvements?commande=${commandeFilter}`)
+      const csvText = await res.text()
+      
+      // Parser le CSV pour extraire les totaux
+      const lines = csvText.split('\n')
+      const recapIndex = lines.findIndex(l => l.includes('RÉCAPITULATIF'))
+      
+      if (recapIndex !== -1) {
+        const totalSortie = lines[recapIndex + 1].match(/[\d.]+/)?.[0] || '0'
+        const totalDechet = lines[recapIndex + 2].match(/[\d.]+/)?.[0] || '0'
+        const totalUtilise = lines[recapIndex + 3].match(/[\d.]+/)?.[0] || '0'
+        
+        setStatsData({
+          commande: commandeFilter,
+          totalSortie: parseFloat(totalSortie),
+          totalDechet: parseFloat(totalDechet),
+          totalUtilise: parseFloat(totalUtilise)
+        })
+      }
+      
+      setShowStats(true)
+    } catch (error) {
+      alert('❌ Erreur lors du calcul')
+    }
+  }
+
+  const exporterCSV = async (type: 'stock' | 'consommation' | 'mouvements') => {
+    let url = ''
+    let filename = ''
+    
+    if (type === 'stock') {
+      url = '/api/export/stock'
+      filename = 'stock_actuel.csv'
+    } else if (type === 'consommation') {
+      url = `/api/export/consommation?mois=${moisConso}`
+      filename = `consommation_${moisConso}_mois.csv`
+    } else if (type === 'mouvements') {
+      url = `/api/export/mouvements${commandeFilter ? `?commande=${commandeFilter}` : ''}`
+      filename = commandeFilter ? `mouvements_${commandeFilter}.csv` : 'tous_mouvements.csv'
+    }
     
     window.open(url, '_blank')
   }
@@ -324,6 +390,21 @@ export default function Home() {
     }
     return colors[lieu] || 'bg-gray-100 text-gray-800'
   }
+
+  // Grouper les bobines par lot
+  const lots = bobines.reduce((acc, bobine) => {
+    const key = `${bobine.reception.code_fournisseur}-${bobine.reception.num_commande}-${bobine.reception.num_type_produit}`
+    if (!acc[key]) {
+      acc[key] = {
+        code_fournisseur: bobine.reception.code_fournisseur,
+        num_commande: bobine.reception.num_commande,
+        num_type_produit: bobine.reception.num_type_produit,
+        bobines: []
+      }
+    }
+    acc[key].bobines.push(bobine)
+    return acc
+  }, {} as Record<string, { code_fournisseur: string, num_commande: string, num_type_produit: string, bobines: Bobine[] }>)
 
   const bobinesStockPrincipal = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
   const bobinesUsine = bobines.filter(b => b.lieu === 'USINE')
@@ -494,18 +575,15 @@ export default function Home() {
   }
 
   // Modal Étiquette (pour impression)
-  if (showEtiquette && bobineToPrint) {
-    const r = bobineToPrint.reception
-    const dimension = r.type_materiel === 'Fil' 
-      ? `Ø${r.diametre_fil} mm`
-      : `${r.largeur_feuillard} x ${r.longueur_feuillard} mm`
-
+  if (showEtiquette && bobinesToPrint.length > 0) {
     return (
       <>
         <div className="min-h-screen bg-gray-50 p-6">
-          <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-blue-900">🏷️ Étiquette A6</h1>
+              <h1 className="text-2xl font-bold text-blue-900">
+                🏷️ Impression étiquettes ({bobinesToPrint.length})
+              </h1>
               <button onClick={() => setShowEtiquette(false)} className="text-red-600 hover:text-red-800">
                 ✕ Fermer
               </button>
@@ -517,26 +595,37 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Étiquette A6 - format 105mm x 148mm */}
-            <div id="etiquette" className="border-2 border-black p-4 mx-auto" style={{width: '105mm', height: '148mm'}}>
-              <div className="text-center mb-3">
-                <h2 className="text-xl font-bold">{r.code_fournisseur} - Cmd {r.num_commande}</h2>
-                <p className="text-lg font-mono font-bold mt-2">{bobineToPrint.code_bobine}</p>
-              </div>
+            {/* Grille d'étiquettes - 6 par page A4 (2x3) */}
+            <div id="etiquettes-grid" className="grid grid-cols-2 gap-4">
+              {bobinesToPrint.map((bobine, index) => {
+                const r = bobine.reception
+                const dimension = r.type_materiel === 'Fil' 
+                  ? `Ø${r.diametre_fil} mm`
+                  : `${r.largeur_feuillard} x ${r.longueur_feuillard} mm`
 
-              <div className="flex justify-center mb-3">
-                <QRCodeSVG value={bobineToPrint.code_bobine} size={120} />
-              </div>
+                return (
+                  <div key={index} className="etiquette-a6 border-2 border-black p-3" style={{width: '95mm', height: '135mm'}}>
+                    <div className="text-center mb-2">
+                      <h2 className="text-lg font-bold">{r.code_fournisseur} - Cmd {r.num_commande}</h2>
+                      <p className="text-base font-mono font-bold mt-1">{bobine.code_bobine}</p>
+                    </div>
 
-              <div className="text-sm space-y-1">
-                <p><strong>Type :</strong> {r.type_materiel}</p>
-                <p><strong>Dimension :</strong> {dimension}</p>
-                <p><strong>Matière :</strong> {r.matiere}</p>
-                <p><strong>Dureté :</strong> {r.durete}</p>
-                <p><strong>Revêtement :</strong> {r.revetement}</p>
-                <p><strong>Poids initial :</strong> {bobineToPrint.poids_initial} kg</p>
-                <p><strong>Date réception :</strong> {new Date(r.date_reception).toLocaleDateString('fr-FR')}</p>
-              </div>
+                    <div className="flex justify-center mb-2">
+                      <QRCodeSVG value={bobine.code_bobine} size={80} />
+                    </div>
+
+                    <div className="text-xs space-y-0.5">
+                      <p><strong>Type :</strong> {r.type_materiel}</p>
+                      <p><strong>Dimension :</strong> {dimension}</p>
+                      <p><strong>Matière :</strong> {r.matiere}</p>
+                      <p><strong>Dureté :</strong> {r.durete}</p>
+                      <p><strong>Revêtement :</strong> {r.revetement}</p>
+                      <p><strong>Poids :</strong> {bobine.poids_initial} kg</p>
+                      <p><strong>Date :</strong> {new Date(r.date_reception).toLocaleDateString('fr-FR')}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -546,24 +635,77 @@ export default function Home() {
             body * {
               visibility: hidden;
             }
-            #etiquette, #etiquette * {
+            #etiquettes-grid, #etiquettes-grid * {
               visibility: visible;
             }
-            #etiquette {
+            #etiquettes-grid {
               position: absolute;
               left: 0;
               top: 0;
-              width: 105mm;
-              height: 148mm;
-              border: none;
+              width: 210mm;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              grid-template-rows: repeat(3, 1fr);
+              gap: 5mm;
+              padding: 10mm;
+            }
+            .etiquette-a6 {
+              width: 95mm;
+              height: 135mm;
+              border: 1px solid #000;
+              page-break-inside: avoid;
             }
             @page {
-              size: A6;
+              size: A4;
               margin: 0;
             }
           }
         `}</style>
       </>
+    )
+  }
+
+  // Modal Stats de fabrication
+  if (showStats && statsData) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-blue-900">📊 Stats de fabrication</h1>
+            <button onClick={() => setShowStats(false)} className="text-red-600 hover:text-red-800">
+              ✕ Fermer
+            </button>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4">Commande: {statsData.commande}</h2>
+            
+            <div className="space-y-3 text-lg">
+              <div className="flex justify-between">
+                <span>📤 Sorties vers usine:</span>
+                <span className="font-bold text-blue-800">{statsData.totalSortie.toFixed(2)} kg</span>
+              </div>
+              <div className="flex justify-between">
+                <span>🗑️ Déchets:</span>
+                <span className="font-bold text-red-800">{statsData.totalDechet.toFixed(2)} kg</span>
+              </div>
+              <div className="border-t-2 border-blue-300 pt-3 flex justify-between">
+                <span className="text-xl font-bold">✅ Total utilisé:</span>
+                <span className="text-xl font-bold text-green-800">{statsData.totalUtilise.toFixed(2)} kg</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => setShowStats(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">
+              Fermer
+            </button>
+            <button onClick={() => exporterCSV('mouvements')} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
+              📥 Exporter CSV
+            </button>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -798,6 +940,65 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Stats de fabrication */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold text-green-800 border-b-2 border-green-500 pb-2 mb-4">
+            📊 Stats de fabrication
+          </h2>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">N° de commande / fabrication</label>
+              <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="CMD-2026-001" />
+            </div>
+            <button onClick={handleCalculerStats}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-md">
+              Calculer
+            </button>
+            <button onClick={() => exporterCSV('mouvements')}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md">
+              📥 Export mouvements
+            </button>
+          </div>
+        </div>
+
+        {/* Lots */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold text-blue-800 border-b-2 border-blue-500 pb-2 mb-4">
+            📦 Lots ({Object.keys(lots).length})
+          </h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-3 py-2 text-left">Lot</th>
+                  <th className="px-3 py-2 text-left">Fournisseur</th>
+                  <th className="px-3 py-2 text-right">Nb bobines</th>
+                  <th className="px-3 py-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(lots).map((lot, index) => (
+                  <tr key={index} className="border-b hover:bg-gray-50">
+                    <td className="px-3 py-2 font-mono font-semibold">
+                      {lot.code_fournisseur}{lot.num_commande}{lot.num_type_produit}
+                    </td>
+                    <td className="px-3 py-2">{lot.code_fournisseur}</td>
+                    <td className="px-3 py-2 text-right">{lot.bobines.length}</td>
+                    <td className="px-3 py-2 text-center">
+                      <button onClick={() => handleImprimerLot(lot.code_fournisseur, lot.num_commande, lot.num_type_produit)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">
+                        🏷️ Imprimer tout le lot
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Stock Principal */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
@@ -883,7 +1084,7 @@ export default function Home() {
 
         {/* Exports CSV */}
         <div className="bg-gray-100 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-blue-800 mb-4">📊 Exports CSV</h2>
+          <h2 className="text-xl font-semibold text-blue-800 mb-4">📊 Autres exports CSV</h2>
           <div className="flex flex-wrap gap-3 items-end">
             <button onClick={() => exporterCSV('stock')}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-md transition">
