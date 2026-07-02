@@ -47,10 +47,8 @@ export default function Home() {
   const [bobines, setBobines] = useState<Bobine[]>([])
   const [etatResume, setEtatResume] = useState<any[]>([])
 
-  // Navigation
   const [currentPage, setCurrentPage] = useState<'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre'>('home')
 
-  // Wizard arrivage
   const [wizardStep, setWizardStep] = useState(1)
   const [receptionData, setReceptionData] = useState<ReceptionData>({
     code_fournisseur: '',
@@ -65,21 +63,21 @@ export default function Home() {
     poids_bobines: []
   })
 
-  // Mouvements
   const [showScan, setShowScan] = useState(false)
   const [selectedBobine, setSelectedBobine] = useState<Bobine | null>(null)
   const [numCommandeFabrication, setNumCommandeFabrication] = useState('')
   const [poidsRestant, setPoidsRestant] = useState('')
 
-  // Étiquettes
   const [showEtiquette, setShowEtiquette] = useState(false)
   const [bobinesToPrint, setBobinesToPrint] = useState<Bobine[]>([])
 
-  // Autre (protégé par code)
   const [codeAcces, setCodeAcces] = useState('')
   const [autreAcces, setAutreAcces] = useState(false)
   const [moisConso, setMoisConso] = useState(3)
   const [commandeFilter, setCommandeFilter] = useState('')
+
+  // Filtre diamètre pour l'état
+  const [diametreFilter, setDiametreFilter] = useState<string>('')
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
@@ -112,15 +110,12 @@ export default function Home() {
     }
   }
 
-  // Reset base de données
   const handleReset = async () => {
-    if (confirm('⚠️ Êtes-vous sûr de vouloir effacer TOUTES les données ? Cette action est irréversible !')) {
+    if (confirm('⚠️ Effacer TOUTES les données ? Cette action est irréversible !')) {
       try {
-        const res = await fetch('/api/reset', { method: 'POST' })
-        if (res.ok) {
-          alert('✅ Base de données réinitialisée')
-          chargerBobines()
-        }
+        await fetch('/api/reset', { method: 'POST' })
+        alert('✅ Base réinitialisée')
+        chargerBobines()
       } catch (error) {
         alert('❌ Erreur')
       }
@@ -180,31 +175,30 @@ export default function Home() {
       const res = await fetch('/api/receptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...receptionData,
-          poids_par_bobine: 0
-        })
+        body: JSON.stringify(receptionData)
       })
       
       if (res.ok) {
         const result = await res.json()
         
-        for (let i = 0; i < receptionData.nombre_bobines; i++) {
-          const bobine = result.bobines[i]
-          await fetch('/api/mouvements', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code_bobine: bobine.code_bobine,
-              type_mouvement: 'ENTREE_FOURNISSEUR',
-              poids_mouvement: receptionData.poids_bobines[i]
-            })
-          })
-        }
+        // Après création, proposer d'imprimer les étiquettes
+        const bobinesCreees = result.bobines
+        const bobinesCompletes = await fetch('/api/bobines').then(r => r.json())
+        const bobinesDuLot = bobinesCompletes.filter((b: Bobine) => 
+          b.reception.code_fournisseur === receptionData.code_fournisseur &&
+          b.reception.num_commande === receptionData.num_commande.padStart(2, '0') &&
+          b.reception.num_type_produit === receptionData.num_type_produit.padStart(2, '0')
+        )
         
         alert('✅ Réception créée avec succès !')
-        setCurrentPage('home')
-        setWizardStep(1)
+        
+        if (confirm('Voulez-vous imprimer les étiquettes maintenant ?')) {
+          setBobinesToPrint(bobinesDuLot)
+          setShowEtiquette(true)
+        } else {
+          setCurrentPage('home')
+          setWizardStep(1)
+        }
         chargerBobines()
       } else {
         const error = await res.json()
@@ -242,10 +236,8 @@ export default function Home() {
     }, 100)
   }
 
-  // Vers usine
   const handleVersUsine = async () => {
     if (!selectedBobine) return
-
     try {
       const res = await fetch('/api/mouvements', {
         method: 'POST',
@@ -257,26 +249,20 @@ export default function Home() {
           num_commande_fabrication: numCommandeFabrication
         })
       })
-
       if (res.ok) {
-        alert('✅ Bobine transférée vers l\'usine')
+        alert('✅ Transférée vers usine')
         setCurrentPage('home')
         setSelectedBobine(null)
         setNumCommandeFabrication('')
         chargerBobines()
-      } else {
-        const error = await res.json()
-        alert(`❌ ${error.error}`)
       }
     } catch (error) {
-      alert('❌ Erreur de connexion')
+      alert('❌ Erreur')
     }
   }
 
-  // Retour usine (vers stock principal)
   const handleRetourUsine = async () => {
     if (!selectedBobine) return
-
     try {
       const res = await fetch('/api/mouvements', {
         method: 'POST',
@@ -288,26 +274,20 @@ export default function Home() {
           lieu_destination: 'STOCK_PRINCIPAL'
         })
       })
-
       if (res.ok) {
-        alert('✅ Bobine retournée au stock principal')
+        alert('✅ Retour stock principal')
         setCurrentPage('home')
         setSelectedBobine(null)
         setPoidsRestant('')
         chargerBobines()
-      } else {
-        const error = await res.json()
-        alert(`❌ ${error.error}`)
       }
     } catch (error) {
-      alert('❌ Erreur de connexion')
+      alert('❌ Erreur')
     }
   }
 
-  // Retour (déchets, rebut)
   const handleRetourDechet = async () => {
     if (!selectedBobine) return
-
     try {
       const res = await fetch('/api/mouvements', {
         method: 'POST',
@@ -318,28 +298,45 @@ export default function Home() {
           poids_mouvement: parseFloat(selectedBobine.poids_actuel)
         })
       })
-
       if (res.ok) {
-        alert('✅ Bobine mise au rebut')
+        alert('✅ Mise au rebut')
         setCurrentPage('home')
         setSelectedBobine(null)
         chargerBobines()
-      } else {
-        const error = await res.json()
-        alert(`❌ ${error.error}`)
       }
     } catch (error) {
-      alert('❌ Erreur de connexion')
+      alert('❌ Erreur')
     }
   }
 
-  // Impression étiquettes
-  const handleImprimerEtiquettes = (bobines: Bobine[]) => {
-    setBobinesToPrint(bobines)
+  // Impression étiquettes par lot
+  const lotsDisponibles = bobines.reduce((acc, bobine) => {
+    const key = `${bobine.reception.code_fournisseur}-${bobine.reception.num_commande}-${bobine.reception.num_type_produit}`
+    if (!acc[key]) {
+      acc[key] = {
+        id: key,
+        code_fournisseur: bobine.reception.code_fournisseur,
+        num_commande: bobine.reception.num_commande,
+        num_type_produit: bobine.reception.num_type_produit,
+        nom: `${bobine.reception.code_fournisseur}${bobine.reception.num_commande}${bobine.reception.num_type_produit}`,
+        nb_bobines: 0
+      }
+    }
+    acc[key].nb_bobines++
+    return acc
+  }, {} as Record<string, any>)
+
+  const handleImprimerLot = (lotKey: string) => {
+    const lot = lotsDisponibles[lotKey]
+    const bobinesDuLot = bobines.filter(b => 
+      b.reception.code_fournisseur === lot.code_fournisseur &&
+      b.reception.num_commande === lot.num_commande &&
+      b.reception.num_type_produit === lot.num_type_produit
+    )
+    setBobinesToPrint(bobinesDuLot)
     setShowEtiquette(true)
   }
 
-  // Accès Autre
   const handleCodeAcces = () => {
     if (codeAcces === '1111') {
       setAutreAcces(true)
@@ -350,19 +347,37 @@ export default function Home() {
 
   const exporterCSV = (type: 'stock' | 'consommation' | 'mouvements') => {
     let url = ''
-    
-    if (type === 'stock') {
-      url = '/api/export/stock'
-    } else if (type === 'consommation') {
-      url = `/api/export/consommation?mois=${moisConso}`
-    } else if (type === 'mouvements') {
-      url = `/api/export/mouvements${commandeFilter ? `?commande=${commandeFilter}` : ''}`
-    }
-    
+    if (type === 'stock') url = '/api/export/stock'
+    else if (type === 'consommation') url = `/api/export/consommation?mois=${moisConso}`
+    else if (type === 'mouvements') url = `/api/export/mouvements${commandeFilter ? `?commande=${commandeFilter}` : ''}`
     window.open(url, '_blank')
   }
 
-  // PAGE PRINCIPALE - BOUTONS UNIQUEMENT
+  // Calculer les diamètres disponibles pour le filtre
+  const diametresDisponibles = Array.from(new Set(
+    bobines
+      .filter(b => b.lieu === 'STOCK_PRINCIPAL' && b.reception.type_materiel === 'Fil' && b.reception.diametre_fil)
+      .map(b => parseFloat(b.reception.diametre_fil!))
+  )).sort((a, b) => a - b)
+
+  // Filtrer et trier l'état par diamètre
+  const etatFiltre = etatResume
+    .filter(item => {
+      if (!diametreFilter) return true
+      // Extraire le diamètre de la dimension (ex: "Ø2.5" -> 2.5)
+      const match = item.dimension.match(/Ø?([\d.]+)/)
+      if (!match) return true
+      return parseFloat(match[1]) === parseFloat(diametreFilter)
+    })
+    .sort((a, b) => {
+      const matchA = a.dimension.match(/Ø?([\d.]+)/)
+      const matchB = b.dimension.match(/Ø?([\d.]+)/)
+      const diamA = matchA ? parseFloat(matchA[1]) : 9999
+      const diamB = matchB ? parseFloat(matchB[1]) : 9999
+      return diamA - diamB
+    })
+
+  // PAGE PRINCIPALE
   if (currentPage === 'home') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -374,22 +389,18 @@ export default function Home() {
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               ➕ Nouvel Arrivage
             </button>
-            
             <button onClick={() => setCurrentPage('usine')}
               className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               ➡️ Vers Usine
             </button>
-            
             <button onClick={() => setCurrentPage('retour_usine')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               🔙 Retour Usine
             </button>
-            
             <button onClick={() => setCurrentPage('retour')}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               🗑️ Retour
             </button>
-            
             <button onClick={() => {
               setCurrentPage('etat')
               chargerEtat()
@@ -397,7 +408,6 @@ export default function Home() {
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               📊 État
             </button>
-            
             <button onClick={() => setCurrentPage('autre')}
               className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               🔐 Autre
@@ -408,7 +418,7 @@ export default function Home() {
     )
   }
 
-  // PAGE ÉTIQUETTES (impression)
+  // PAGE ÉTIQUETTES
   if (showEtiquette && bobinesToPrint.length > 0) {
     return (
       <>
@@ -416,20 +426,19 @@ export default function Home() {
           <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-blue-900">
-                🏷️ Impression étiquettes ({bobinesToPrint.length})
+                🏷️ {bobinesToPrint.length} étiquette(s)
               </h1>
-              <button onClick={() => {
-                setShowEtiquette(false)
-                setBobinesToPrint([])
-              }} className="text-red-600 hover:text-red-800">
-                ✕ Fermer
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <button onClick={() => window.print()} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
-                🖨️ Imprimer
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-md">
+                  🖨️ Imprimer
+                </button>
+                <button onClick={() => {
+                  setShowEtiquette(false)
+                  setBobinesToPrint([])
+                }} className="text-red-600 hover:text-red-800 px-4">
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div id="etiquettes-grid">
@@ -441,22 +450,21 @@ export default function Home() {
 
                 return (
                   <div key={index} className="etiquette">
-                    <div className="text-center mb-1">
-                      <p className="text-xs font-bold">{r.code_fournisseur} Cmd {r.num_commande}</p>
-                      <p className="text-sm font-mono font-bold">{bobine.code_bobine}</p>
-                    </div>
-
-                    <div className="flex justify-center mb-1">
-                      <QRCodeSVG value={bobine.code_bobine} size={50} />
-                    </div>
-
-                    <div className="text-center mb-1">
-                      <p className="text-3xl font-bold text-blue-800">{dimension}</p>
-                      <p className="text-3xl font-bold text-green-800">{bobine.poids_initial} kg</p>
-                    </div>
-
-                    <div className="text-xs">
-                      <p>{r.matiere} - {r.durete} - {r.revetement}</p>
+                    <div className="etiquette-content">
+                      {/* Colonne gauche : infos */}
+                      <div className="etiquette-left">
+                        <p className="text-xs font-bold">{r.code_fournisseur} Cmd {r.num_commande}</p>
+                        <p className="text-sm font-mono font-bold">{bobine.code_bobine}</p>
+                        <p className="text-3xl font-bold text-blue-800 leading-tight">{dimension}</p>
+                        <p className="text-3xl font-bold text-green-800 leading-tight">{bobine.poids_initial} kg</p>
+                        <p className="text-xs mt-1">{r.matiere} - {r.durete}</p>
+                        <p className="text-xs">{r.revetement}</p>
+                      </div>
+                      
+                      {/* Colonne droite : QR code */}
+                      <div className="etiquette-right">
+                        <QRCodeSVG value={bobine.code_bobine} size={90} />
+                      </div>
                     </div>
                   </div>
                 )
@@ -490,10 +498,55 @@ export default function Home() {
               border: 1px solid #000;
               padding: 2mm;
               page-break-inside: avoid;
+              box-sizing: border-box;
+            }
+            .etiquette-content {
+              display: flex;
+              height: 100%;
+              gap: 2mm;
+            }
+            .etiquette-left {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+            }
+            .etiquette-right {
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
             @page {
               size: A4 portrait;
               margin: 0;
+            }
+          }
+          @media screen {
+            #etiquettes-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 10px;
+            }
+            .etiquette {
+              border: 2px solid #000;
+              padding: 8px;
+              min-height: 200px;
+            }
+            .etiquette-content {
+              display: flex;
+              height: 100%;
+              gap: 10px;
+            }
+            .etiquette-left {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+            }
+            .etiquette-right {
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
           }
         `}</style>
@@ -511,9 +564,7 @@ export default function Home() {
             <button onClick={() => {
               setShowScan(false)
               if (scannerRef.current) scannerRef.current.clear()
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Fermer
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
           <div id="reader" className="w-full"></div>
         </div>
@@ -521,38 +572,36 @@ export default function Home() {
     )
   }
 
-  // PAGE ARRIVAGE (wizard)
+  // PAGE ARRIVAGE
   if (currentPage === 'arrivage') {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-blue-900">➕ Nouvel Arrivage - Étape {wizardStep}/3</h1>
+            <h1 className="text-2xl font-bold text-blue-900">➕ Arrivage - Étape {wizardStep}/3</h1>
             <button onClick={() => {
               setCurrentPage('home')
               setWizardStep(1)
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Annuler
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           {wizardStep === 1 && (
             <form onSubmit={handleEtape1} className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code Fournisseur</label>
+                  <label className="block text-sm font-medium mb-1">Code Fournisseur</label>
                   <input name="code_fournisseur" maxLength={4} required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md uppercase" placeholder="MUGA" />
+                    className="w-full px-4 py-2 border rounded-md uppercase" placeholder="MUGA" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">N° Commande</label>
+                  <label className="block text-sm font-medium mb-1">N° Commande</label>
                   <input name="num_commande" maxLength={2} required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="05" />
+                    className="w-full px-4 py-2 border rounded-md" placeholder="05" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">N° Type Produit</label>
+                  <label className="block text-sm font-medium mb-1">N° Type Produit</label>
                   <input name="num_type_produit" maxLength={2} required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="12" />
+                    className="w-full px-4 py-2 border rounded-md" placeholder="12" />
                 </div>
               </div>
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">
@@ -565,15 +614,15 @@ export default function Home() {
             <form onSubmit={handleEtape2} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select name="type_materiel" className="w-full px-4 py-2 border border-gray-300 rounded-md">
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select name="type_materiel" className="w-full px-4 py-2 border rounded-md">
                     <option value="Fil">Fil</option>
                     <option value="Feuillard">Feuillard</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Matière</label>
-                  <select name="matiere" className="w-full px-4 py-2 border border-gray-300 rounded-md">
+                  <label className="block text-sm font-medium mb-1">Matière</label>
+                  <select name="matiere" className="w-full px-4 py-2 border rounded-md">
                     <option value="Acier">Acier</option>
                     <option value="Inox">Inox</option>
                     <option value="Bronze">Bronze</option>
@@ -581,8 +630,8 @@ export default function Home() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dureté</label>
-                  <select name="durete" className="w-full px-4 py-2 border border-gray-300 rounded-md">
+                  <label className="block text-sm font-medium mb-1">Dureté</label>
+                  <select name="durete" className="w-full px-4 py-2 border rounded-md">
                     <option value="Doux">Fil Doux</option>
                     <option value="SL">SL</option>
                     <option value="SM">SM</option>
@@ -592,8 +641,8 @@ export default function Home() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Revêtement</label>
-                  <select name="revetement" className="w-full px-4 py-2 border border-gray-300 rounded-md">
+                  <label className="block text-sm font-medium mb-1">Revêtement</label>
+                  <select name="revetement" className="w-full px-4 py-2 border rounded-md">
                     <option value="Noir">Noir</option>
                     <option value="Galva">Galva</option>
                     <option value="Galfan">Galfan</option>
@@ -604,21 +653,21 @@ export default function Home() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Diamètre (mm)</label>
+                  <label className="block text-sm font-medium mb-1">Diamètre (mm)</label>
                   <input name="diametre_fil" type="number" step="0.01"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="1.20" />
+                    className="w-full px-4 py-2 border rounded-md" placeholder="1.20" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date réception</label>
+                  <label className="block text-sm font-medium mb-1">Date réception</label>
                   <input name="date_reception" type="date" required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md" />
+                    className="w-full px-4 py-2 border rounded-md" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de bobines</label>
+                <label className="block text-sm font-medium mb-1">Nombre de bobines</label>
                 <input name="nombre_bobines" type="number" min="1" max="99" defaultValue="1" required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md" />
+                  className="w-full px-4 py-2 border rounded-md" />
               </div>
 
               <div className="flex gap-2">
@@ -640,7 +689,7 @@ export default function Home() {
                     <label className="w-32 text-sm font-medium">Bobine {String(index + 1).padStart(2, '0')}</label>
                     <input type="number" step="0.01" value={poids || ''}
                       onChange={(e) => handlePoidsChange(index, e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md" placeholder="kg" />
+                      className="flex-1 px-4 py-2 border rounded-md" placeholder="kg" />
                   </div>
                 ))}
               </div>
@@ -676,9 +725,7 @@ export default function Home() {
             <button onClick={() => {
               setCurrentPage('home')
               setSelectedBobine(null)
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Annuler
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           {!selectedBobine ? (
@@ -703,9 +750,9 @@ export default function Home() {
                 <p className="text-sm">{selectedBobine.poids_actuel} kg</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">N° commande fabrication</label>
+                <label className="block text-sm font-medium mb-1">N° commande fabrication</label>
                 <input type="text" value={numCommandeFabrication} onChange={(e) => setNumCommandeFabrication(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="CMD-001" />
+                  className="w-full px-4 py-2 border rounded-md" placeholder="CMD-001" />
               </div>
               <button onClick={handleVersUsine} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
                 ✓ Valider
@@ -729,9 +776,7 @@ export default function Home() {
             <button onClick={() => {
               setCurrentPage('home')
               setSelectedBobine(null)
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Annuler
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           {!selectedBobine ? (
@@ -756,9 +801,9 @@ export default function Home() {
                 <p className="text-sm">Commande: {selectedBobine.num_commande_fabrication}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Poids restant (kg)</label>
+                <label className="block text-sm font-medium mb-1">Poids restant (kg)</label>
                 <input type="number" step="0.01" value={poidsRestant} onChange={(e) => setPoidsRestant(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="15.5" />
+                  className="w-full px-4 py-2 border rounded-md" placeholder="15.5" />
               </div>
               <button onClick={handleRetourUsine} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
                 ✓ Valider (retour stock principal)
@@ -782,9 +827,7 @@ export default function Home() {
             <button onClick={() => {
               setCurrentPage('home')
               setSelectedBobine(null)
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Annuler
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           {!selectedBobine ? (
@@ -822,17 +865,51 @@ export default function Home() {
   if (currentPage === 'etat') {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-green-900">📊 État du stock</h1>
             <div className="flex gap-2">
-              <button onClick={() => handleImprimerEtiquettes(bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL'))}
+              <button onClick={() => {
+                const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
+                setBobinesToPrint(bobinesStock)
+                setShowEtiquette(true)
+              }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
                 🏷️ Imprimer étiquettes
               </button>
-              <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800">
-                ✕ Fermer
+              <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800 px-4">
+                ✕
               </button>
+            </div>
+          </div>
+
+          {/* Filtre par diamètre */}
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setDiametreFilter('')}
+                className={`px-4 py-2 rounded-md text-sm font-semibold ${!diametreFilter ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
+                Tous
+              </button>
+              {diametresDisponibles.map(d => (
+                <button key={d} onClick={() => setDiametreFilter(d.toString())}
+                  className={`px-4 py-2 rounded-md text-sm font-semibold ${diametreFilter === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
+                  Ø {d} mm
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sélection lot pour impression */}
+          <div className="mb-6 bg-purple-50 border border-purple-200 rounded-md p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Imprimer étiquettes d'un lot</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.values(lotsDisponibles).map((lot: any) => (
+                <button key={lot.id} onClick={() => handleImprimerLot(lot.id)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold">
+                  {lot.nom} ({lot.nb_bobines})
+                </button>
+              ))}
             </div>
           </div>
 
@@ -841,22 +918,26 @@ export default function Home() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-3 py-2 text-left">Dimension</th>
-                  <th className="px-3 py-2 text-left">Matière</th>
                   <th className="px-3 py-2 text-left">Dureté</th>
+                  <th className="px-3 py-2 text-left">Revêtement</th>
                   <th className="px-3 py-2 text-right">Nb bobines</th>
                   <th className="px-3 py-2 text-right">Poids total</th>
                 </tr>
               </thead>
               <tbody>
-                {etatResume.map((item, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="px-3 py-2 font-semibold">{item.dimension}</td>
-                    <td className="px-3 py-2">{item.matiere}</td>
-                    <td className="px-3 py-2">{item.durete}</td>
-                    <td className="px-3 py-2 text-right">{item.nombre_bobines}</td>
-                    <td className="px-3 py-2 text-right font-bold text-green-800">{item.poids_total.toFixed(2)} kg</td>
-                  </tr>
-                ))}
+                {etatFiltre.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center py-4 text-gray-500">Aucune donnée</td></tr>
+                ) : (
+                  etatFiltre.map((item, index) => (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="px-3 py-2 font-semibold">{item.dimension}</td>
+                      <td className="px-3 py-2">{item.durete}</td>
+                      <td className="px-3 py-2">{item.revetement}</td>
+                      <td className="px-3 py-2 text-right">{item.nombre_bobines}</td>
+                      <td className="px-3 py-2 text-right font-bold text-green-800">{item.poids_total.toFixed(2)} kg</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -865,19 +946,19 @@ export default function Home() {
     )
   }
 
-  // PAGE AUTRE (protégée)
+  // PAGE AUTRE
   if (currentPage === 'autre') {
     if (!autreAcces) {
       return (
         <div className="min-h-screen bg-gray-50 p-6">
           <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">🔐 Accès protégé</h1>
+            <h1 className="text-2xl font-bold mb-6">🔐 Accès protégé</h1>
             <input type="password" value={codeAcces} onChange={(e) => setCodeAcces(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md mb-4" placeholder="Code à 4 chiffres" maxLength={4} />
+              className="w-full px-4 py-2 border rounded-md mb-4" placeholder="Code à 4 chiffres" maxLength={4} />
             <button onClick={handleCodeAcces} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-md">
               Valider
             </button>
-            <button onClick={() => setCurrentPage('home')} className="w-full mt-2 text-gray-600 hover:text-gray-800">
+            <button onClick={() => setCurrentPage('home')} className="w-full mt-2 text-gray-600">
               Retour
             </button>
           </div>
@@ -889,14 +970,12 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">🔐 Administration</h1>
+            <h1 className="text-2xl font-bold">🔐 Administration</h1>
             <button onClick={() => {
               setCurrentPage('home')
               setAutreAcces(false)
               setCodeAcces('')
-            }} className="text-red-600 hover:text-red-800">
-              ✕ Fermer
-            </button>
+            }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           <div className="space-y-4">
@@ -916,7 +995,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-2">Stats par commande</h2>
               <div className="flex gap-2">
                 <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md" placeholder="N° commande" />
+                  className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
                 <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
                   Exporter
                 </button>
@@ -927,7 +1006,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-2">Consommation</h2>
               <div className="flex gap-2 items-center">
                 <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)}
-                  min="1" max="120" className="w-20 px-3 py-2 border border-gray-300 rounded-md" />
+                  min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
                 <span>mois</span>
                 <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">
                   📈 Exporter
