@@ -44,11 +44,12 @@ type ReceptionData = {
 }
 
 export default function Home() {
+  // États principaux
   const [bobines, setBobines] = useState<Bobine[]>([])
   const [etatResume, setEtatResume] = useState<any[]>([])
-
   const [currentPage, setCurrentPage] = useState<'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre'>('home')
 
+  // Wizard arrivage
   const [wizardStep, setWizardStep] = useState(1)
   const [receptionData, setReceptionData] = useState<ReceptionData>({
     code_fournisseur: '',
@@ -63,20 +64,23 @@ export default function Home() {
     poids_bobines: []
   })
 
+  // Mouvements
   const [showScan, setShowScan] = useState(false)
   const [selectedBobine, setSelectedBobine] = useState<Bobine | null>(null)
   const [numCommandeFabrication, setNumCommandeFabrication] = useState('')
   const [poidsRestant, setPoidsRestant] = useState('')
 
+  // Étiquettes
   const [showEtiquette, setShowEtiquette] = useState(false)
   const [bobinesToPrint, setBobinesToPrint] = useState<Bobine[]>([])
 
+  // Page Autre
   const [codeAcces, setCodeAcces] = useState('')
   const [autreAcces, setAutreAcces] = useState(false)
   const [moisConso, setMoisConso] = useState(3)
   const [commandeFilter, setCommandeFilter] = useState('')
 
-  // Filtre diamètre pour l'état
+  // Filtres
   const [diametreFilter, setDiametreFilter] = useState<string>('')
   const [filtreDiametreUsine, setFiltreDiametreUsine] = useState<string>('')
   const [rechercheNomUsine, setRechercheNomUsine] = useState('')
@@ -183,8 +187,6 @@ export default function Home() {
       if (res.ok) {
         const result = await res.json()
         
-        // Après création, proposer d'imprimer les étiquettes
-        const bobinesCreees = result.bobines
         const bobinesCompletes = await fetch('/api/bobines').then(r => r.json())
         const bobinesDuLot = bobinesCompletes.filter((b: Bobine) => 
           b.reception.code_fournisseur === receptionData.code_fournisseur &&
@@ -311,7 +313,7 @@ export default function Home() {
     }
   }
 
-  // Impression étiquettes par lot
+  // Lots disponibles
   const lotsDisponibles = bobines.reduce((acc, bobine) => {
     const key = `${bobine.reception.code_fournisseur}-${bobine.reception.num_commande}-${bobine.reception.num_type_produit}`
     if (!acc[key]) {
@@ -355,18 +357,17 @@ export default function Home() {
     window.open(url, '_blank')
   }
 
-  // Calculer les diamètres disponibles pour le filtre
+  // Diamètres disponibles
   const diametresDisponibles = Array.from(new Set(
     bobines
       .filter(b => b.lieu === 'STOCK_PRINCIPAL' && b.reception.type_materiel === 'Fil' && b.reception.diametre_fil)
       .map(b => parseFloat(b.reception.diametre_fil!))
   )).sort((a, b) => a - b)
 
-  // Filtrer et trier l'état par diamètre
+  // État filtré
   const etatFiltre = etatResume
     .filter(item => {
       if (!diametreFilter) return true
-      // Extraire le diamètre de la dimension (ex: "Ø2.5" -> 2.5)
       const match = item.dimension.match(/Ø?([\d.]+)/)
       if (!match) return true
       return parseFloat(match[1]) === parseFloat(diametreFilter)
@@ -453,7 +454,6 @@ export default function Home() {
                 return (
                   <div key={index} className="etiquette">
                     <div className="etiquette-content">
-                      {/* Colonne gauche : infos */}
                       <div className="etiquette-left">
                         <p className="text-xs font-bold">{r.code_fournisseur} Cmd {r.num_commande}</p>
                         <p className="text-sm font-mono font-bold">{bobine.code_bobine}</p>
@@ -462,8 +462,6 @@ export default function Home() {
                         <p className="text-xs mt-1">{r.matiere} - {r.durete}</p>
                         <p className="text-xs">{r.revetement}</p>
                       </div>
-                      
-                      {/* Colonne droite : QR code */}
                       <div className="etiquette-right">
                         <QRCodeSVG value={bobine.code_bobine} size={90} />
                       </div>
@@ -715,30 +713,21 @@ export default function Home() {
     )
   }
 
- 
-   // PAGE VERS USINE
+  // PAGE VERS USINE
   if (currentPage === 'usine') {
     const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
     
-    // Diamètres disponibles dans le stock principal
     const diametresStock = Array.from(new Set(
       bobinesStock
         .filter(b => b.reception.type_materiel === 'Fil' && b.reception.diametre_fil)
         .map(b => parseFloat(b.reception.diametre_fil!))
     )).sort((a, b) => a - b)
 
-    // États locaux pour les filtres
-    const [filtreDiametreUsine, setFiltreDiametreUsineUsine] = useState<string>('')
-    const [rechercheNomUsine, setRechercheNomUsineUsine] = useState('')
-
-    // Filtrer les bobines
     const bobinesFiltrees = bobinesStock.filter(b => {
-      // Filtre par diamètre
       if (filtreDiametreUsine) {
         const diamBobine = b.reception.diametre_fil ? parseFloat(b.reception.diametre_fil) : null
         if (diamBobine?.toString() !== filtreDiametreUsine) return false
       }
-      // Filtre par recherche (code bobine ou matière)
       if (rechercheNomUsine) {
         const search = rechercheNomUsine.toUpperCase()
         const match = 
@@ -751,7 +740,6 @@ export default function Home() {
       return true
     })
 
-    // Poids total disponible (filtré)
     const poidsTotalDispo = bobinesFiltrees.reduce((sum, b) => sum + parseFloat(b.poids_actuel.toString()), 0)
     const poidsTotalStock = bobinesStock.reduce((sum, b) => sum + parseFloat(b.poids_actuel.toString()), 0)
 
@@ -763,38 +751,37 @@ export default function Home() {
             <button onClick={() => {
               setCurrentPage('home')
               setSelectedBobine(null)
+              setFiltreDiametreUsine('')
+              setRechercheNomUsine('')
             }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
           {!selectedBobine ? (
             <div className="space-y-4">
-              {/* Bouton Scanner */}
               <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
                 📷 Scanner un code-barre
               </button>
 
-              {/* Recherche par nom */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">🔍 Rechercher une bobine</label>
                 <input 
                   type="text" 
                   value={rechercheNomUsine}
-                  onChange={(e) => setRechercheNomUsineUsine(e.target.value)}
+                  onChange={(e) => setRechercheNomUsine(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md" 
                   placeholder="Code bobine, matière, dureté..."
                 />
               </div>
 
-              {/* Filtre par diamètre */}
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setFiltreDiametreUsineUsine('')}
+                  <button onClick={() => setFiltreDiametreUsine('')}
                     className={`px-3 py-1 rounded-md text-sm font-semibold ${!filtreDiametreUsine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
                     Tous
                   </button>
                   {diametresStock.map(d => (
-                    <button key={d} onClick={() => setFiltreDiametreUsineUsine(d.toString())}
+                    <button key={d} onClick={() => setFiltreDiametreUsine(d.toString())}
                       className={`px-3 py-1 rounded-md text-sm font-semibold ${filtreDiametreUsine === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
                       Ø {d} mm
                     </button>
@@ -802,7 +789,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Poids total disponible */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-md p-3 text-center">
                   <p className="text-xs text-gray-600">Poids filtré</p>
@@ -816,7 +802,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Liste des bobines */}
               <div>
                 <h2 className="text-lg font-semibold mb-2">
                   Bobines disponibles ({bobinesFiltrees.length})
@@ -980,22 +965,11 @@ export default function Home() {
         <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-green-900">📊 État du stock</h1>
-            <div className="flex gap-2">
-              <button onClick={() => {
-                const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
-                setBobinesToPrint(bobinesStock)
-                setShowEtiquette(true)
-              }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
-                🏷️ Imprimer étiquettes
-              </button>
-              <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800 px-4">
-                ✕
-              </button>
-            </div>
+            <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800 px-4">
+              ✕
+            </button>
           </div>
 
-          {/* Filtre par diamètre */}
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
             <div className="flex flex-wrap gap-2">
@@ -1012,7 +986,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Sélection lot pour impression */}
           <div className="mb-6 bg-purple-50 border border-purple-200 rounded-md p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Imprimer étiquettes d'un lot</label>
             <div className="flex flex-wrap gap-2">
