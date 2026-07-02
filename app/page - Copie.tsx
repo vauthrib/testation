@@ -78,8 +78,6 @@ export default function Home() {
 
   // Filtre diamètre pour l'état
   const [diametreFilter, setDiametreFilter] = useState<string>('')
-  const [filtreDiametreUsine, setFiltreDiametreUsine] = useState<string>('')
-  const [rechercheNomUsine, setRechercheNomUsine] = useState('')
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
@@ -728,19 +726,19 @@ export default function Home() {
     )).sort((a, b) => a - b)
 
     // États locaux pour les filtres
-    const [filtreDiametreUsine, setFiltreDiametreUsineUsine] = useState<string>('')
-    const [rechercheNomUsine, setRechercheNomUsineUsine] = useState('')
+    const [filtreDiametre, setFiltreDiametre] = useState<string>('')
+    const [rechercheNom, setRechercheNom] = useState('')
 
     // Filtrer les bobines
     const bobinesFiltrees = bobinesStock.filter(b => {
       // Filtre par diamètre
-      if (filtreDiametreUsine) {
+      if (filtreDiametre) {
         const diamBobine = b.reception.diametre_fil ? parseFloat(b.reception.diametre_fil) : null
-        if (diamBobine?.toString() !== filtreDiametreUsine) return false
+        if (diamBobine?.toString() !== filtreDiametre) return false
       }
       // Filtre par recherche (code bobine ou matière)
-      if (rechercheNomUsine) {
-        const search = rechercheNomUsine.toUpperCase()
+      if (rechercheNom) {
+        const search = rechercheNom.toUpperCase()
         const match = 
           b.code_bobine.toUpperCase().includes(search) ||
           b.reception.matiere.toUpperCase().includes(search) ||
@@ -778,8 +776,8 @@ export default function Home() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">🔍 Rechercher une bobine</label>
                 <input 
                   type="text" 
-                  value={rechercheNomUsine}
-                  onChange={(e) => setRechercheNomUsineUsine(e.target.value)}
+                  value={rechercheNom}
+                  onChange={(e) => setRechercheNom(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md" 
                   placeholder="Code bobine, matière, dureté..."
                 />
@@ -789,13 +787,13 @@ export default function Home() {
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setFiltreDiametreUsineUsine('')}
-                    className={`px-3 py-1 rounded-md text-sm font-semibold ${!filtreDiametreUsine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
+                  <button onClick={() => setFiltreDiametre('')}
+                    className={`px-3 py-1 rounded-md text-sm font-semibold ${!filtreDiametre ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
                     Tous
                   </button>
                   {diametresStock.map(d => (
-                    <button key={d} onClick={() => setFiltreDiametreUsineUsine(d.toString())}
-                      className={`px-3 py-1 rounded-md text-sm font-semibold ${filtreDiametreUsine === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
+                    <button key={d} onClick={() => setFiltreDiametre(d.toString())}
+                      className={`px-3 py-1 rounded-md text-sm font-semibold ${filtreDiametre === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
                       Ø {d} mm
                     </button>
                   ))}
