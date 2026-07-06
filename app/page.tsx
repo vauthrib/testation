@@ -79,10 +79,17 @@ export default function Home() {
   const [filtreDiametreUsine, setFiltreDiametreUsine] = useState<string>('')
   const [rechercheNomUsine, setRechercheNomUsine] = useState('')
 
-  // Items personnalisés
   const [itemsMatiere, setItemsMatiere] = useState<any[]>([])
   const [itemsDurete, setItemsDurete] = useState<any[]>([])
   const [itemsRev, setItemsRev] = useState<any[]>([])
+
+  // Fichiers CSV pour import
+  const [importFiles, setImportFiles] = useState<{
+    receptions: File | null
+    bobines: File | null
+    mouvements: File | null
+    items: File | null
+  }>({ receptions: null, bobines: null, mouvements: null, items: null })
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
@@ -144,30 +151,45 @@ export default function Home() {
     }
   }
 
-  // Import backup
-  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Export base (4 CSV)
+  const handleExportBase = () => {
+    const tables = ['receptions', 'bobines', 'mouvements', 'items']
+    tables.forEach((table, index) => {
+      setTimeout(() => {
+        window.open(`/api/backup?table=${table}`, '_blank')
+      }, index * 300)
+    })
+    alert('📥 Téléchargement des 4 fichiers CSV en cours...')
+  }
 
-    if (!confirm('⚠️ Cette action va écraser TOUTES les données actuelles. Continuer ?')) {
-      e.target.value = ''
+  // Import base
+  const handleImportBase = async () => {
+    if (!importFiles.receptions && !importFiles.bobines && !importFiles.mouvements && !importFiles.items) {
+      alert('⚠️ Veuillez sélectionner au moins un fichier CSV')
+      return
+    }
+
+    if (!confirm('⚠️ Cette action va ÉCRASER toutes les données actuelles. Continuer ?')) {
       return
     }
 
     try {
-      const text = await file.text()
-      const data = JSON.parse(text)
+      const formData = new FormData()
+      if (importFiles.receptions) formData.append('receptions', importFiles.receptions)
+      if (importFiles.bobines) formData.append('bobines', importFiles.bobines)
+      if (importFiles.mouvements) formData.append('mouvements', importFiles.mouvements)
+      if (importFiles.items) formData.append('items', importFiles.items)
 
-      const res = await fetch('/api/backup', {
+      const res = await fetch('/api/backup/import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: formData
       })
 
       if (res.ok) {
-        alert('✅ Base de données restaurée avec succès')
+        alert('✅ Base restaurée avec succès')
         chargerBobines()
         chargerItems()
+        setImportFiles({ receptions: null, bobines: null, mouvements: null, items: null })
       } else {
         const error = await res.json()
         alert(`❌ ${error.error}`)
@@ -175,7 +197,6 @@ export default function Home() {
     } catch (error) {
       alert('❌ Erreur lors de l\'import')
     }
-    e.target.value = ''
   }
 
   // Wizard Arrivage
@@ -235,7 +256,7 @@ export default function Home() {
       })
       
       if (res.ok) {
-        const result = await res.json()
+        await res.json()
         
         const bobinesCompletes = await fetch('/api/bobines').then(r => r.json())
         const bobinesDuLot = bobinesCompletes.filter((b: Bobine) => 
@@ -263,7 +284,6 @@ export default function Home() {
     }
   }
 
-  // Scan
   const startScanner = () => {
     setShowScan(true)
     setTimeout(() => {
@@ -363,7 +383,6 @@ export default function Home() {
     }
   }
 
-  // Lots disponibles
   const lotsDisponibles = bobines.reduce((acc, bobine) => {
     const key = `${bobine.reception.code_fournisseur}-${bobine.reception.num_commande}-${bobine.reception.num_type_produit}`
     if (!acc[key]) {
@@ -407,14 +426,12 @@ export default function Home() {
     window.open(url, '_blank')
   }
 
-  // Diamètres disponibles
   const diametresDisponibles = Array.from(new Set(
     bobines
       .filter(b => b.lieu === 'STOCK_PRINCIPAL' && b.reception.type_materiel === 'Fil' && b.reception.diametre_fil)
       .map(b => parseFloat(b.reception.diametre_fil!))
   )).sort((a, b) => a - b)
 
-  // État filtré
   const etatFiltre = etatResume
     .filter(item => {
       if (!diametreFilter) return true
@@ -507,10 +524,11 @@ export default function Home() {
                       <div className="etiquette-left">
                         <p className="text-xs font-bold">{r.code_fournisseur} Cmd {r.num_commande}</p>
                         <p className="text-sm font-mono font-bold">{bobine.code_bobine}</p>
-                        <p className="text-3xl font-bold text-blue-800 leading-tight">{dimension}</p>
-                        <p className="text-3xl font-bold text-green-800 leading-tight">{bobine.poids_initial} kg</p>
-                        <p className="text-xs mt-1">{r.matiere} - {r.durete}</p>
-                        <p className="text-xs">{r.revetement}</p>
+                        <p className="etiquette-gros-text text-blue-800 leading-tight">{dimension}</p>
+                        <p className="etiquette-gros-text text-green-800 leading-tight">{bobine.poids_initial} kg</p>
+                        <p className="etiquette-moyen-text mt-1">{r.matiere}</p>
+                        <p className="etiquette-moyen-text">{r.durete}</p>
+                        <p className="etiquette-moyen-text">{r.revetement}</p>
                       </div>
                       <div className="etiquette-right">
                         <QRCodeSVG value={bobine.code_bobine} size={90} />
@@ -524,6 +542,15 @@ export default function Home() {
         </div>
 
         <style jsx global>{`
+          .etiquette-gros-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            line-height: 1.1;
+          }
+          .etiquette-moyen-text {
+            font-size: 0.9rem;
+            font-weight: bold;
+          }
           @media print {
             body * { visibility: hidden; }
             #etiquettes-grid, #etiquettes-grid * { visibility: visible; }
@@ -547,6 +574,8 @@ export default function Home() {
             .etiquette-content { display: flex; height: 100%; gap: 2mm; }
             .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
             .etiquette-right { display: flex; align-items: center; justify-content: center; }
+            .etiquette-gros-text { font-size: 1.3rem; }
+            .etiquette-moyen-text { font-size: 0.75rem; }
             @page { size: A4 portrait; margin: 0; }
           }
           @media screen {
@@ -680,7 +709,7 @@ export default function Home() {
               </div>
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
-                💡 Les listes (Matière, Dureté, Revêtement) sont gérables dans la page <strong>Autre → Gestion des items</strong>
+                💡 Les listes (Matière, Dureté, Revêtement) sont gérables dans <strong>Autre → Gestion des items</strong>
               </div>
 
               <div className="flex gap-2">
@@ -816,9 +845,7 @@ export default function Home() {
               </div>
 
               <div>
-                <h2 className="text-lg font-semibold mb-2">
-                  Bobines disponibles ({bobinesFiltrees.length})
-                </h2>
+                <h2 className="text-lg font-semibold mb-2">Bobines disponibles ({bobinesFiltrees.length})</h2>
                 <div className="max-h-96 overflow-y-auto space-y-2">
                   {bobinesFiltrees.length === 0 ? (
                     <p className="text-center py-4 text-gray-500">Aucune bobine trouvée</p>
@@ -833,9 +860,7 @@ export default function Home() {
                           <div className="flex justify-between items-start">
                             <div>
                               <div className="font-mono font-semibold">{b.code_bobine}</div>
-                              <div className="text-sm text-gray-600">
-                                {dim} - {b.reception.matiere} - {b.reception.durete}
-                              </div>
+                              <div className="text-sm text-gray-600">{dim} - {b.reception.matiere} - {b.reception.durete}</div>
                             </div>
                             <div className="text-right">
                               <div className="font-bold text-green-800">{b.poids_actuel} kg</div>
@@ -978,9 +1003,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-green-900">📊 État du stock</h1>
-            <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800 px-4">
-              ✕
-            </button>
+            <button onClick={() => setCurrentPage('home')} className="text-red-600 hover:text-red-800 px-4">✕</button>
           </div>
 
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -1085,7 +1108,7 @@ export default function Home() {
           {/* Exports CSV */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">📊 Exports CSV</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
                 💾 Stock actuel
               </button>
@@ -1120,21 +1143,54 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Backup complet */}
+          {/* Backup CSV complet */}
           <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base</h2>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => window.open('/api/backup', '_blank')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                📥 Exporter toute la base (JSON)
+            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base (CSV)</h2>
+            
+            <div className="mb-4">
+              <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                📥 Exporter toute la base (4 fichiers CSV)
               </button>
-              <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md cursor-pointer">
-                📤 Importer une base (JSON)
-                <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
-              </label>
+              <p className="text-xs text-gray-500 mt-2">
+                Télécharge 4 fichiers : receptions.csv, bobines.csv, mouvements.csv, items.csv
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              ⚠️ L'import écrase toutes les données actuelles. Pensez à exporter avant.
-            </p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+              <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Réceptions :</label>
+                  <input type="file" accept=".csv" 
+                    onChange={(e) => setImportFiles({ ...importFiles, receptions: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Bobines :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, bobines: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Mouvements :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, mouvements: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Items :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, items: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+              </div>
+              <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                📤 Restaurer depuis les CSV
+              </button>
+              <p className="text-xs text-red-600 mt-2">
+                ⚠️ L'import écrase TOUTES les données actuelles.
+              </p>
+            </div>
           </div>
 
           {/* Reset */}
@@ -1173,17 +1229,12 @@ export default function Home() {
 
     const handleAjouter = async () => {
       if (!nouvelItem.trim()) return
-
       try {
         const res = await fetch('/api/items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            categorie,
-            nom: nouvelItem.trim()
-          })
+          body: JSON.stringify({ categorie, nom: nouvelItem.trim() })
         })
-
         if (res.ok) {
           setNouvelItem('')
           chargerItemsCat()
@@ -1199,17 +1250,12 @@ export default function Home() {
 
     const handleModifier = async (item: any, nouveauNom: string) => {
       if (!nouveauNom.trim()) return
-      
       try {
         const res = await fetch('/api/items', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: item.id,
-            nom: nouveauNom.trim()
-          })
+          body: JSON.stringify({ id: item.id, nom: nouveauNom.trim() })
         })
-
         if (res.ok) {
           setEditingItem(null)
           chargerItemsCat()
@@ -1225,7 +1271,6 @@ export default function Home() {
 
     const handleSupprimer = async (id: number) => {
       if (!confirm('Supprimer cet item ?')) return
-
       try {
         await fetch(`/api/items?id=${id}`, { method: 'DELETE' })
         chargerItemsCat()
@@ -1274,25 +1319,17 @@ export default function Home() {
                       onKeyDown={(e) => e.key === 'Enter' && handleModifier(item, editingItem.nom)}
                       className="flex-1 px-3 py-1 border rounded-md" autoFocus />
                     <button onClick={() => handleModifier(item, editingItem.nom)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm">
-                      ✓
-                    </button>
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm">✓</button>
                     <button onClick={() => setEditingItem(null)}
-                      className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm">
-                      ✕
-                    </button>
+                      className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm">✕</button>
                   </>
                 ) : (
                   <>
                     <span className="flex-1 font-medium">{item.nom}</span>
                     <button onClick={() => setEditingItem({ ...item })}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm">
-                      ✏️ Modifier
-                    </button>
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm">✏️ Modifier</button>
                     <button onClick={() => handleSupprimer(item.id)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">
-                      🗑️
-                    </button>
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">🗑️</button>
                   </>
                 )}
               </div>
