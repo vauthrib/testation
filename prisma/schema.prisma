@@ -16,7 +16,7 @@ model Reception {
   diametre_fil      Decimal?  @db.Decimal(5, 2)
   longueur_feuillard Decimal? @db.Decimal(7, 2)
   largeur_feuillard Decimal?  @db.Decimal(7, 2)
-  matiere           Matiere
+  matiere           String    @db.VarChar(20)
   durete            String    @db.VarChar(20)
   revetement        String    @db.VarChar(20)
   date_reception    DateTime  @db.Date
@@ -60,16 +60,19 @@ model Mouvement {
   @@map("mouvements")
 }
 
+model ItemPersonnalise {
+  id              Int             @id @default(autoincrement())
+  categorie       CategorieItem
+  nom             String          @db.VarChar(50)
+  ordre           Int             @default(0)
+  
+  @@unique([categorie, nom])
+  @@map("items_personnalises")
+}
+
 enum TypeMateriel {
   Fil
   Feuillard
-}
-
-enum Matiere {
-  Acier
-  Inox
-  Bronze
-  Cuivre
 }
 
 enum Statut {
@@ -93,4 +96,10 @@ enum Lieu {
   STOCK_PRINCIPAL
   USINE
   DECHET
+}
+
+enum CategorieItem {
+  MATIERE
+  DURETE
+  REVETEMENT
 }

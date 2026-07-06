@@ -44,51 +44,51 @@ type ReceptionData = {
 }
 
 export default function Home() {
-  // États principaux
   const [bobines, setBobines] = useState<Bobine[]>([])
   const [etatResume, setEtatResume] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState<'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre'>('home')
 
-  // Wizard arrivage
   const [wizardStep, setWizardStep] = useState(1)
   const [receptionData, setReceptionData] = useState<ReceptionData>({
     code_fournisseur: '',
     num_commande: '',
     num_type_produit: '',
     type_materiel: 'Fil',
-    matiere: 'Acier',
-    durete: 'Doux',
-    revetement: 'Noir',
+    matiere: '',
+    durete: '',
+    revetement: '',
     date_reception: new Date().toISOString().split('T')[0],
     nombre_bobines: 1,
     poids_bobines: []
   })
 
-  // Mouvements
   const [showScan, setShowScan] = useState(false)
   const [selectedBobine, setSelectedBobine] = useState<Bobine | null>(null)
   const [numCommandeFabrication, setNumCommandeFabrication] = useState('')
   const [poidsRestant, setPoidsRestant] = useState('')
 
-  // Étiquettes
   const [showEtiquette, setShowEtiquette] = useState(false)
   const [bobinesToPrint, setBobinesToPrint] = useState<Bobine[]>([])
 
-  // Page Autre
   const [codeAcces, setCodeAcces] = useState('')
   const [autreAcces, setAutreAcces] = useState(false)
   const [moisConso, setMoisConso] = useState(3)
   const [commandeFilter, setCommandeFilter] = useState('')
 
-  // Filtres
   const [diametreFilter, setDiametreFilter] = useState<string>('')
   const [filtreDiametreUsine, setFiltreDiametreUsine] = useState<string>('')
   const [rechercheNomUsine, setRechercheNomUsine] = useState('')
+
+  // Items personnalisés
+  const [itemsMatiere, setItemsMatiere] = useState<any[]>([])
+  const [itemsDurete, setItemsDurete] = useState<any[]>([])
+  const [itemsRev, setItemsRev] = useState<any[]>([])
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
   useEffect(() => {
     chargerBobines()
+    chargerItems()
     return () => {
       if (scannerRef.current) {
         scannerRef.current.clear()
@@ -116,16 +116,66 @@ export default function Home() {
     }
   }
 
+  const chargerItems = async () => {
+    try {
+      const [matRes, durRes, revRes] = await Promise.all([
+        fetch('/api/items?categorie=MATIERE'),
+        fetch('/api/items?categorie=DURETE'),
+        fetch('/api/items?categorie=REVETEMENT')
+      ])
+      setItemsMatiere(await matRes.json())
+      setItemsDurete(await durRes.json())
+      setItemsRev(await revRes.json())
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   const handleReset = async () => {
     if (confirm('⚠️ Effacer TOUTES les données ? Cette action est irréversible !')) {
       try {
         await fetch('/api/reset', { method: 'POST' })
         alert('✅ Base réinitialisée')
         chargerBobines()
+        chargerItems()
       } catch (error) {
         alert('❌ Erreur')
       }
     }
+  }
+
+  // Import backup
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!confirm('⚠️ Cette action va écraser TOUTES les données actuelles. Continuer ?')) {
+      e.target.value = ''
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      const res = await fetch('/api/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+
+      if (res.ok) {
+        alert('✅ Base de données restaurée avec succès')
+        chargerBobines()
+        chargerItems()
+      } else {
+        const error = await res.json()
+        alert(`❌ ${error.error}`)
+      }
+    } catch (error) {
+      alert('❌ Erreur lors de l\'import')
+    }
+    e.target.value = ''
   }
 
   // Wizard Arrivage
@@ -380,7 +430,7 @@ export default function Home() {
       return diamA - diamB
     })
 
-  // PAGE PRINCIPALE
+  // ============ PAGE PRINCIPALE ============
   if (currentPage === 'home') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -421,7 +471,7 @@ export default function Home() {
     )
   }
 
-  // PAGE ÉTIQUETTES
+  // ============ PAGE ÉTIQUETTES ============
   if (showEtiquette && bobinesToPrint.length > 0) {
     return (
       <>
@@ -475,16 +525,11 @@ export default function Home() {
 
         <style jsx global>{`
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            #etiquettes-grid, #etiquettes-grid * {
-              visibility: visible;
-            }
+            body * { visibility: hidden; }
+            #etiquettes-grid, #etiquettes-grid * { visibility: visible; }
             #etiquettes-grid {
               position: absolute;
-              left: 0;
-              top: 0;
+              left: 0; top: 0;
               width: 210mm;
               display: grid;
               grid-template-columns: repeat(3, 62mm);
@@ -493,33 +538,16 @@ export default function Home() {
               padding: 10mm;
             }
             .etiquette {
-              width: 62mm;
-              height: 90mm;
+              width: 62mm; height: 90mm;
               border: 1px solid #000;
               padding: 2mm;
               page-break-inside: avoid;
               box-sizing: border-box;
             }
-            .etiquette-content {
-              display: flex;
-              height: 100%;
-              gap: 2mm;
-            }
-            .etiquette-left {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-            }
-            .etiquette-right {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
+            .etiquette-content { display: flex; height: 100%; gap: 2mm; }
+            .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+            .etiquette-right { display: flex; align-items: center; justify-content: center; }
+            @page { size: A4 portrait; margin: 0; }
           }
           @media screen {
             #etiquettes-grid {
@@ -527,34 +555,17 @@ export default function Home() {
               grid-template-columns: repeat(3, 1fr);
               gap: 10px;
             }
-            .etiquette {
-              border: 2px solid #000;
-              padding: 8px;
-              min-height: 200px;
-            }
-            .etiquette-content {
-              display: flex;
-              height: 100%;
-              gap: 10px;
-            }
-            .etiquette-left {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-            }
-            .etiquette-right {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
+            .etiquette { border: 2px solid #000; padding: 8px; min-height: 200px; }
+            .etiquette-content { display: flex; height: 100%; gap: 10px; }
+            .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+            .etiquette-right { display: flex; align-items: center; justify-content: center; }
           }
         `}</style>
       </>
     )
   }
 
-  // PAGE SCAN
+  // ============ PAGE SCAN ============
   if (showScan) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -572,7 +583,7 @@ export default function Home() {
     )
   }
 
-  // PAGE ARRIVAGE
+  // ============ PAGE ARRIVAGE ============
   if (currentPage === 'arrivage') {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -622,31 +633,29 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Matière</label>
-                  <select name="matiere" className="w-full px-4 py-2 border rounded-md">
-                    <option value="Acier">Acier</option>
-                    <option value="Inox">Inox</option>
-                    <option value="Bronze">Bronze</option>
-                    <option value="Cuivre">Cuivre</option>
+                  <select name="matiere" required className="w-full px-4 py-2 border rounded-md">
+                    <option value="">-- Choisir --</option>
+                    {itemsMatiere.map(item => (
+                      <option key={item.id} value={item.nom}>{item.nom}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Dureté</label>
-                  <select name="durete" className="w-full px-4 py-2 border rounded-md">
-                    <option value="Doux">Fil Doux</option>
-                    <option value="SL">SL</option>
-                    <option value="SM">SM</option>
-                    <option value="SH">SH</option>
-                    <option value="TH">TH</option>
-                    <option value="InoxNS">Inox NS</option>
+                  <select name="durete" required className="w-full px-4 py-2 border rounded-md">
+                    <option value="">-- Choisir --</option>
+                    {itemsDurete.map(item => (
+                      <option key={item.id} value={item.nom}>{item.nom}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Revêtement</label>
-                  <select name="revetement" className="w-full px-4 py-2 border rounded-md">
-                    <option value="Noir">Noir</option>
-                    <option value="Galva">Galva</option>
-                    <option value="Galfan">Galfan</option>
-                    <option value="Cuivré">Cuivré</option>
+                  <select name="revetement" required className="w-full px-4 py-2 border rounded-md">
+                    <option value="">-- Choisir --</option>
+                    {itemsRev.map(item => (
+                      <option key={item.id} value={item.nom}>{item.nom}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -668,6 +677,10 @@ export default function Home() {
                 <label className="block text-sm font-medium mb-1">Nombre de bobines</label>
                 <input name="nombre_bobines" type="number" min="1" max="99" defaultValue="1" required
                   className="w-full px-4 py-2 border rounded-md" />
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+                💡 Les listes (Matière, Dureté, Revêtement) sont gérables dans la page <strong>Autre → Gestion des items</strong>
               </div>
 
               <div className="flex gap-2">
@@ -713,7 +726,7 @@ export default function Home() {
     )
   }
 
-  // PAGE VERS USINE
+  // ============ PAGE VERS USINE ============
   if (currentPage === 'usine') {
     const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
     
@@ -861,7 +874,7 @@ export default function Home() {
     )
   }
 
-  // PAGE RETOUR USINE
+  // ============ PAGE RETOUR USINE ============
   if (currentPage === 'retour_usine') {
     const bobinesUsine = bobines.filter(b => b.lieu === 'USINE')
     
@@ -912,7 +925,7 @@ export default function Home() {
     )
   }
 
-  // PAGE RETOUR (déchets)
+  // ============ PAGE RETOUR (déchets) ============
   if (currentPage === 'retour') {
     const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
     
@@ -958,7 +971,7 @@ export default function Home() {
     )
   }
 
-  // PAGE ÉTAT
+  // ============ PAGE ÉTAT ============
   if (currentPage === 'etat') {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -1031,7 +1044,7 @@ export default function Home() {
     )
   }
 
-  // PAGE AUTRE
+  // ============ PAGE AUTRE ============
   if (currentPage === 'autre') {
     if (!autreAcces) {
       return (
@@ -1053,7 +1066,7 @@ export default function Home() {
 
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">🔐 Administration</h1>
             <button onClick={() => {
@@ -1063,47 +1076,72 @@ export default function Home() {
             }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
-          <div className="space-y-4">
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-2">Exports CSV</h2>
-              <div className="flex gap-2">
-                <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                  💾 Stock actuel
-                </button>
-                <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                  📥 Tous mouvements
-                </button>
-              </div>
-            </div>
+          {/* Gestion des items */}
+          <div className="mb-8 border-b pb-6">
+            <h2 className="text-lg font-semibold mb-4">📝 Gestion des items</h2>
+            <ItemsManager onItemsChange={chargerItems} />
+          </div>
 
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-2">Stats par commande</h2>
-              <div className="flex gap-2">
-                <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)}
-                  className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
-                <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                  Exporter
-                </button>
-              </div>
-            </div>
-
-            <div className="border-b pb-4">
-              <h2 className="text-lg font-semibold mb-2">Consommation</h2>
-              <div className="flex gap-2 items-center">
-                <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)}
-                  min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
-                <span>mois</span>
-                <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">
-                  📈 Exporter
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-4">
-              <button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-md">
-                ⚠️ Réinitialiser base de données
+          {/* Exports CSV */}
+          <div className="border-b pb-4 mb-4">
+            <h2 className="text-lg font-semibold mb-2">📊 Exports CSV</h2>
+            <div className="flex gap-2">
+              <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                💾 Stock actuel
+              </button>
+              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                📥 Tous mouvements
               </button>
             </div>
+          </div>
+
+          {/* Stats par commande */}
+          <div className="border-b pb-4 mb-4">
+            <h2 className="text-lg font-semibold mb-2">📈 Stats par commande</h2>
+            <div className="flex gap-2">
+              <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)}
+                className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
+              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                Exporter
+              </button>
+            </div>
+          </div>
+
+          {/* Consommation */}
+          <div className="border-b pb-4 mb-4">
+            <h2 className="text-lg font-semibold mb-2">📉 Consommation</h2>
+            <div className="flex gap-2 items-center">
+              <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)}
+                min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
+              <span>mois</span>
+              <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">
+                📈 Exporter
+              </button>
+            </div>
+          </div>
+
+          {/* Backup complet */}
+          <div className="border-b pb-4 mb-4">
+            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base</h2>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => window.open('/api/backup', '_blank')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+                📥 Exporter toute la base (JSON)
+              </button>
+              <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md cursor-pointer">
+                📤 Importer une base (JSON)
+                <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              ⚠️ L'import écrase toutes les données actuelles. Pensez à exporter avant.
+            </p>
+          </div>
+
+          {/* Reset */}
+          <div className="pt-4">
+            <button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-md">
+              ⚠️ Réinitialiser base de données
+            </button>
           </div>
         </div>
       </div>
@@ -1111,4 +1149,157 @@ export default function Home() {
   }
 
   return null
+
+  // ============ COMPOSANT ItemsManager ============
+  function ItemsManager({ onItemsChange }: { onItemsChange: () => void }) {
+    const [items, setItems] = useState<any[]>([])
+    const [categorie, setCategorie] = useState<'MATIERE' | 'DURETE' | 'REVETEMENT'>('MATIERE')
+    const [nouvelItem, setNouvelItem] = useState('')
+    const [editingItem, setEditingItem] = useState<any>(null)
+
+    useEffect(() => {
+      chargerItemsCat()
+    }, [categorie])
+
+    const chargerItemsCat = async () => {
+      try {
+        const res = await fetch(`/api/items?categorie=${categorie}`)
+        const data = await res.json()
+        setItems(data)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    const handleAjouter = async () => {
+      if (!nouvelItem.trim()) return
+
+      try {
+        const res = await fetch('/api/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categorie,
+            nom: nouvelItem.trim()
+          })
+        })
+
+        if (res.ok) {
+          setNouvelItem('')
+          chargerItemsCat()
+          onItemsChange()
+        } else {
+          const error = await res.json()
+          alert(`❌ ${error.error}`)
+        }
+      } catch (error) {
+        alert('❌ Erreur')
+      }
+    }
+
+    const handleModifier = async (item: any, nouveauNom: string) => {
+      if (!nouveauNom.trim()) return
+      
+      try {
+        const res = await fetch('/api/items', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: item.id,
+            nom: nouveauNom.trim()
+          })
+        })
+
+        if (res.ok) {
+          setEditingItem(null)
+          chargerItemsCat()
+          onItemsChange()
+        } else {
+          const error = await res.json()
+          alert(`❌ ${error.error}`)
+        }
+      } catch (error) {
+        alert('❌ Erreur')
+      }
+    }
+
+    const handleSupprimer = async (id: number) => {
+      if (!confirm('Supprimer cet item ?')) return
+
+      try {
+        await fetch(`/api/items?id=${id}`, { method: 'DELETE' })
+        chargerItemsCat()
+        onItemsChange()
+      } catch (error) {
+        alert('❌ Erreur')
+      }
+    }
+
+    const categorieLabels = {
+      MATIERE: 'Matières',
+      DURETE: 'Duretés',
+      REVETEMENT: 'Revêtements'
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          {(['MATIERE', 'DURETE', 'REVETEMENT'] as const).map(cat => (
+            <button key={cat} onClick={() => setCategorie(cat)}
+              className={`px-4 py-2 rounded-md ${categorie === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>
+              {categorieLabels[cat]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input type="text" value={nouvelItem} onChange={(e) => setNouvelItem(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAjouter()}
+            className="flex-1 px-4 py-2 border rounded-md" placeholder={`Nouveau ${categorieLabels[categorie].toLowerCase()}...`} />
+          <button onClick={handleAjouter} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+            ➕ Ajouter
+          </button>
+        </div>
+
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {items.length === 0 ? (
+            <p className="text-center py-4 text-gray-500">Aucun item dans cette catégorie</p>
+          ) : (
+            items.map(item => (
+              <div key={item.id} className="flex items-center gap-2 p-2 border rounded-md">
+                {editingItem?.id === item.id ? (
+                  <>
+                    <input type="text" value={editingItem.nom}
+                      onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
+                      onKeyDown={(e) => e.key === 'Enter' && handleModifier(item, editingItem.nom)}
+                      className="flex-1 px-3 py-1 border rounded-md" autoFocus />
+                    <button onClick={() => handleModifier(item, editingItem.nom)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm">
+                      ✓
+                    </button>
+                    <button onClick={() => setEditingItem(null)}
+                      className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm">
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 font-medium">{item.nom}</span>
+                    <button onClick={() => setEditingItem({ ...item })}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm">
+                      ✏️ Modifier
+                    </button>
+                    <button onClick={() => handleSupprimer(item.id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">
+                      🗑️
+                    </button>
+                  </>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    )
+  }
 }
