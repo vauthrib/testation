@@ -83,7 +83,6 @@ export default function Home() {
   const [itemsDurete, setItemsDurete] = useState<any[]>([])
   const [itemsRev, setItemsRev] = useState<any[]>([])
 
-  // Fichiers CSV pour import
   const [importFiles, setImportFiles] = useState<{
     receptions: File | null
     bobines: File | null
@@ -151,15 +150,25 @@ export default function Home() {
     }
   }
 
-  // Export base (4 CSV)
-  const handleExportBase = () => {
-    const tables = ['receptions', 'bobines', 'mouvements', 'items']
-    tables.forEach((table, index) => {
-      setTimeout(() => {
-        window.open(`/api/backup?table=${table}`, '_blank')
-      }, index * 300)
-    })
-    alert('📥 Téléchargement des 4 fichiers CSV en cours...')
+  // Export base en ZIP
+  const handleExportBase = async () => {
+    try {
+      const res = await fetch('/api/backup/zip')
+      if (!res.ok) throw new Error('Erreur serveur')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const date = new Date().toISOString().split('T')[0]
+      a.download = `backup_stock_bobines_${date}.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      alert('✅ ZIP téléchargé avec les 4 fichiers CSV')
+    } catch (error) {
+      alert('❌ Erreur lors de l\'export')
+    }
   }
 
   // Import base
@@ -522,13 +531,13 @@ export default function Home() {
                   <div key={index} className="etiquette">
                     <div className="etiquette-content">
                       <div className="etiquette-left">
-                        <p className="text-xs font-bold">{r.code_fournisseur} Cmd {r.num_commande}</p>
-                        <p className="text-sm font-mono font-bold">{bobine.code_bobine}</p>
-                        <p className="etiquette-gros-text text-blue-800 leading-tight">{dimension}</p>
-                        <p className="etiquette-gros-text text-green-800 leading-tight">{bobine.poids_initial} kg</p>
-                        <p className="etiquette-moyen-text mt-1">{r.matiere}</p>
-                        <p className="etiquette-moyen-text">{r.durete}</p>
-                        <p className="etiquette-moyen-text">{r.revetement}</p>
+                        <p className="etiquette-header">{r.code_fournisseur} Cmd {r.num_commande}</p>
+                        <p className="etiquette-code">{bobine.code_bobine}</p>
+                        <p className="etiquette-gros text-blue-800">{dimension}</p>
+                        <p className="etiquette-gros text-green-800">{bobine.poids_initial} kg</p>
+                        <p className="etiquette-gros">{r.matiere}</p>
+                        <p className="etiquette-gros">{r.durete}</p>
+                        <p className="etiquette-gros">{r.revetement}</p>
                       </div>
                       <div className="etiquette-right">
                         <QRCodeSVG value={bobine.code_bobine} size={90} />
@@ -542,14 +551,19 @@ export default function Home() {
         </div>
 
         <style jsx global>{`
-          .etiquette-gros-text {
-            font-size: 1.5rem;
+          .etiquette-header {
+            font-size: 0.7rem;
             font-weight: bold;
-            line-height: 1.1;
           }
-          .etiquette-moyen-text {
-            font-size: 0.9rem;
+          .etiquette-code {
+            font-size: 0.85rem;
+            font-family: monospace;
             font-weight: bold;
+          }
+          .etiquette-gros {
+            font-size: 1.4rem;
+            font-weight: bold;
+            line-height: 1.05;
           }
           @media print {
             body * { visibility: hidden; }
@@ -574,8 +588,9 @@ export default function Home() {
             .etiquette-content { display: flex; height: 100%; gap: 2mm; }
             .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
             .etiquette-right { display: flex; align-items: center; justify-content: center; }
-            .etiquette-gros-text { font-size: 1.3rem; }
-            .etiquette-moyen-text { font-size: 0.75rem; }
+            .etiquette-header { font-size: 0.6rem; }
+            .etiquette-code { font-size: 0.7rem; }
+            .etiquette-gros { font-size: 1.15rem; }
             @page { size: A4 portrait; margin: 0; }
           }
           @media screen {
@@ -1143,21 +1158,24 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Backup CSV complet */}
+          {/* Backup CSV complet en ZIP */}
           <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base (CSV)</h2>
+            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base (ZIP)</h2>
             
             <div className="mb-4">
               <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                📥 Exporter toute la base (4 fichiers CSV)
+                📥 Exporter toute la base (ZIP avec 4 CSV)
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                Télécharge 4 fichiers : receptions.csv, bobines.csv, mouvements.csv, items.csv
+                Télécharge 1 fichier ZIP contenant : receptions.csv, bobines.csv, mouvements.csv, items.csv
               </p>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
               <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
+              <p className="text-xs text-gray-600 mb-3">
+                Décompresse le ZIP et sélectionne les 4 fichiers CSV ci-dessous :
+              </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <label className="w-32 text-sm font-medium">Réceptions :</label>
