@@ -103,3 +103,13 @@ enum CategorieItem {
   DURETE
   REVETEMENT
 }
+
+model ConnectionLog {
+  id              Int       @id @default(autoincrement())
+  utilisateur     String    @db.VarChar(50)
+  appareil        String    @db.VarChar(255)
+  ip_address      String?   @db.VarChar(45)
+  date_connexion  DateTime  @default(now())
+  
+  @@map("connection_logs")
+}

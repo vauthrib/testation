@@ -35,7 +35,9 @@ export default function BobinePage() {
   const [error, setError] = useState('')
 
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [accessCode, setAccessCode] = useState('')
+  const [currentUser, setCurrentUser] = useState('')
+  const [login, setLogin] = useState('')
+  const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
 
   const [showAction, setShowAction] = useState<'usine' | 'stock' | 'rebut' | 'rebut_partiel' | null>(null)
@@ -45,13 +47,22 @@ export default function BobinePage() {
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
-    const auth = localStorage.getItem('bobine_access_granted')
-    if (auth === 'true') {
-      setIsAuthenticated(true)
-      chargerBobine()
-    } else {
-      setLoading(false)
+    // Vérifier si authentifié aujourd'hui
+    const authData = localStorage.getItem('bobine_auth')
+    if (authData) {
+      const { user, date } = JSON.parse(authData)
+      const today = new Date().toDateString()
+      if (date === today) {
+        setIsAuthenticated(true)
+        setCurrentUser(user)
+        chargerBobine()
+        return
+      } else {
+        // Supprimer l'ancienne auth si ce n'est pas aujourd'hui
+        localStorage.removeItem('bobine_auth')
+      }
     }
+    setLoading(false)
   }, [code])
 
   const chargerBobine = async () => {
@@ -69,25 +80,51 @@ export default function BobinePage() {
   }
 
   const handleAuth = async () => {
+    if (!login.trim() || !password.trim()) {
+      setAuthError('Veuillez remplir tous les champs')
+      return
+    }
+
     try {
-      const res = await fetch('/api/auth/verify', {
+      const userAgent = navigator.userAgent || 'Navigateur inconnu'
+      
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: accessCode })
+        body: JSON.stringify({ 
+          login, 
+          password,
+          appareil: userAgent
+        })
       })
 
       const data = await res.json()
 
       if (data.valid) {
-        localStorage.setItem('bobine_access_granted', 'true')
+        const today = new Date().toDateString()
+        localStorage.setItem('bobine_auth', JSON.stringify({ 
+          user: data.user, 
+          date: today,
+          isSuper: data.isSuper
+        }))
         setIsAuthenticated(true)
+        setCurrentUser(data.user)
         chargerBobine()
       } else {
-        setAuthError('Code incorrect')
+        setAuthError(data.error || 'Erreur de connexion')
       }
     } catch (err) {
-      setAuthError('Erreur de connexion')
+      setAuthError('Erreur de connexion au serveur')
     }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('bobine_auth')
+    setIsAuthenticated(false)
+    setCurrentUser('')
+    setLogin('')
+    setPassword('')
+    setBobine(null)
   }
 
   const handleVersUsine = async () => {
@@ -246,23 +283,58 @@ export default function BobinePage() {
     }
   }
 
+  // Page de login
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8">
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">🔐</div>
-            <h1 className="text-2xl font-bold text-blue-900 mb-2">Accès sécurisé</h1>
-            <p className="text-sm text-gray-600">Entrez le code d'accès pour continuer</p>
+            <h1 className="text-2xl font-bold text-blue-900 mb-2">Connexion requise</h1>
+            <p className="text-sm text-gray-600">Entrez vos identifiants pour continuer</p>
           </div>
 
           <div className="space-y-4">
-            <input type="password" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAuth()} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-center text-lg focus:border-blue-500 focus:outline-none" placeholder="Code d'accès" maxLength={10} autoFocus />
-            {authError && (<p className="text-red-600 text-sm text-center">{authError}</p>)}
-            <button onClick={handleAuth} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">Valider</button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
+              <input 
+                type="text" 
+                value={login} 
+                onChange={(e) => setLogin(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" 
+                placeholder="Votre login"
+                autoFocus 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" 
+                placeholder="Votre mot de passe"
+              />
+            </div>
+
+            {authError && (
+              <p className="text-red-600 text-sm text-center">{authError}</p>
+            )}
+
+            <button 
+              onClick={handleAuth} 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            >
+              Se connecter
+            </button>
           </div>
 
-          <div className="mt-6 text-center text-xs text-gray-500">Bobine : {code}</div>
+          <div className="mt-6 text-center text-xs text-gray-500">
+            <p>Bobine : {code}</p>
+            <p className="mt-1">Connexion autorisée de 7h30 à 18h00</p>
+          </div>
         </div>
       </div>
     )
@@ -311,6 +383,17 @@ export default function BobinePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-2xl mx-auto">
+        {/* Header avec info utilisateur */}
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-4 flex justify-between items-center">
+          <div>
+            <p className="text-sm text-gray-600">Connecté en tant que</p>
+            <p className="font-bold text-blue-900">{currentUser}</p>
+          </div>
+          <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+            Déconnexion
+          </button>
+        </div>
+
         <div className="bg-white rounded-xl shadow-lg p-6 mb-4">
           <div className="flex justify-between items-start mb-4">
             <div>
