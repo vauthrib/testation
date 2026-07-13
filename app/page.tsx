@@ -87,7 +87,6 @@ export default function Home() {
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
-  // Fonction pour obtenir l'URL de base
   const getBaseUrl = () => {
     if (typeof window !== 'undefined') {
       return window.location.origin
@@ -318,6 +317,13 @@ export default function Home() {
 
   const handleVersUsine = async () => {
     if (!selectedBobine) return
+    
+    // Vérifier si déjà en usine
+    if (selectedBobine.lieu === 'USINE') {
+      alert('⚠️ Cette bobine est déjà en usine')
+      return
+    }
+    
     try {
       const res = await fetch('/api/mouvements', {
         method: 'POST',
@@ -343,6 +349,13 @@ export default function Home() {
 
   const handleRetourUsine = async () => {
     if (!selectedBobine) return
+    
+    // Vérifier si pas en usine
+    if (selectedBobine.lieu !== 'USINE') {
+      alert('⚠️ Cette bobine n\'est pas en usine')
+      return
+    }
+    
     try {
       const res = await fetch('/api/mouvements', {
         method: 'POST',
@@ -551,40 +564,20 @@ export default function Home() {
         </div>
 
         <style jsx global>{`
-          .etiquette-header {
-            font-size: 0.7rem;
-            font-weight: bold;
-          }
-          .etiquette-code {
-            font-size: 0.85rem;
-            font-family: monospace;
-            font-weight: bold;
-          }
-          .etiquette-gros {
-            font-size: 1.4rem;
-            font-weight: bold;
-            line-height: 1.05;
-          }
+          .etiquette-header { font-size: 0.7rem; font-weight: bold; }
+          .etiquette-code { font-size: 0.85rem; font-family: monospace; font-weight: bold; }
+          .etiquette-gros { font-size: 1.4rem; font-weight: bold; line-height: 1.05; }
           @media print {
             body * { visibility: hidden; }
             #etiquettes-grid, #etiquettes-grid * { visibility: visible; }
             #etiquettes-grid {
-              position: absolute;
-              left: 0; top: 0;
-              width: 210mm;
+              position: absolute; left: 0; top: 0; width: 210mm;
               display: grid;
               grid-template-columns: repeat(3, 62mm);
               grid-template-rows: repeat(3, 90mm);
-              gap: 3mm;
-              padding: 10mm;
+              gap: 3mm; padding: 10mm;
             }
-            .etiquette {
-              width: 62mm; height: 90mm;
-              border: 1px solid #000;
-              padding: 2mm;
-              page-break-inside: avoid;
-              box-sizing: border-box;
-            }
+            .etiquette { width: 62mm; height: 90mm; border: 1px solid #000; padding: 2mm; page-break-inside: avoid; box-sizing: border-box; }
             .etiquette-content { display: flex; height: 100%; gap: 2mm; }
             .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
             .etiquette-right { display: flex; align-items: center; justify-content: center; }
@@ -594,11 +587,7 @@ export default function Home() {
             @page { size: A4 portrait; margin: 0; }
           }
           @media screen {
-            #etiquettes-grid {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 10px;
-            }
+            #etiquettes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
             .etiquette { border: 2px solid #000; padding: 8px; min-height: 200px; }
             .etiquette-content { display: flex; height: 100%; gap: 10px; }
             .etiquette-left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
@@ -645,23 +634,18 @@ export default function Home() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Code Fournisseur</label>
-                  <input name="code_fournisseur" maxLength={4} required
-                    className="w-full px-4 py-2 border rounded-md uppercase" placeholder="MUGA" />
+                  <input name="code_fournisseur" maxLength={4} required className="w-full px-4 py-2 border rounded-md uppercase" placeholder="MUGA" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">N° Commande</label>
-                  <input name="num_commande" maxLength={2} required
-                    className="w-full px-4 py-2 border rounded-md" placeholder="05" />
+                  <input name="num_commande" maxLength={2} required className="w-full px-4 py-2 border rounded-md" placeholder="05" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">N° Type Produit</label>
-                  <input name="num_type_produit" maxLength={2} required
-                    className="w-full px-4 py-2 border rounded-md" placeholder="12" />
+                  <input name="num_type_produit" maxLength={2} required className="w-full px-4 py-2 border rounded-md" placeholder="12" />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">
-                Suivant →
-              </button>
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">Suivant →</button>
             </form>
           )}
 
@@ -679,27 +663,21 @@ export default function Home() {
                   <label className="block text-sm font-medium mb-1">Matière</label>
                   <select name="matiere" required className="w-full px-4 py-2 border rounded-md">
                     <option value="">-- Choisir --</option>
-                    {itemsMatiere.map(item => (
-                      <option key={item.id} value={item.nom}>{item.nom}</option>
-                    ))}
+                    {itemsMatiere.map(item => (<option key={item.id} value={item.nom}>{item.nom}</option>))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Dureté</label>
                   <select name="durete" required className="w-full px-4 py-2 border rounded-md">
                     <option value="">-- Choisir --</option>
-                    {itemsDurete.map(item => (
-                      <option key={item.id} value={item.nom}>{item.nom}</option>
-                    ))}
+                    {itemsDurete.map(item => (<option key={item.id} value={item.nom}>{item.nom}</option>))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Revêtement</label>
                   <select name="revetement" required className="w-full px-4 py-2 border rounded-md">
                     <option value="">-- Choisir --</option>
-                    {itemsRev.map(item => (
-                      <option key={item.id} value={item.nom}>{item.nom}</option>
-                    ))}
+                    {itemsRev.map(item => (<option key={item.id} value={item.nom}>{item.nom}</option>))}
                   </select>
                 </div>
               </div>
@@ -707,33 +685,26 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Diamètre (mm)</label>
-                  <input name="diametre_fil" type="number" step="0.01"
-                    className="w-full px-4 py-2 border rounded-md" placeholder="1.20" />
+                  <input name="diametre_fil" type="number" step="0.01" className="w-full px-4 py-2 border rounded-md" placeholder="1.20" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Date réception</label>
-                  <input name="date_reception" type="date" required
-                    className="w-full px-4 py-2 border rounded-md" />
+                  <input name="date_reception" type="date" required className="w-full px-4 py-2 border rounded-md" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">Nombre de bobines</label>
-                <input name="nombre_bobines" type="number" min="1" max="99" defaultValue="1" required
-                  className="w-full px-4 py-2 border rounded-md" />
+                <input name="nombre_bobines" type="number" min="1" max="99" defaultValue="1" required className="w-full px-4 py-2 border rounded-md" />
               </div>
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
-                💡 Les listes (Matière, Dureté, Revêtement) sont gérables dans <strong>Autre → Gestion des items</strong>
+                💡 Les listes sont gérables dans <strong>Autre → Gestion des items</strong>
               </div>
 
               <div className="flex gap-2">
-                <button type="button" onClick={() => setWizardStep(1)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">
-                  ← Retour
-                </button>
-                <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">
-                  Suivant →
-                </button>
+                <button type="button" onClick={() => setWizardStep(1)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">← Retour</button>
+                <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md">Suivant →</button>
               </div>
             </form>
           )}
@@ -744,9 +715,7 @@ export default function Home() {
                 {receptionData.poids_bobines.map((poids, index) => (
                   <div key={index} className="flex items-center gap-4">
                     <label className="w-32 text-sm font-medium">Bobine {String(index + 1).padStart(2, '0')}</label>
-                    <input type="number" step="0.01" value={poids || ''}
-                      onChange={(e) => handlePoidsChange(index, e.target.value)}
-                      className="flex-1 px-4 py-2 border rounded-md" placeholder="kg" />
+                    <input type="number" step="0.01" value={poids || ''} onChange={(e) => handlePoidsChange(index, e.target.value)} className="flex-1 px-4 py-2 border rounded-md" placeholder="kg" />
                   </div>
                 ))}
               </div>
@@ -756,12 +725,8 @@ export default function Home() {
               </div>
 
               <div className="flex gap-2">
-                <button onClick={() => setWizardStep(2)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">
-                  ← Retour
-                </button>
-                <button onClick={handleValiderReception} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
-                  ✓ Valider
-                </button>
+                <button onClick={() => setWizardStep(2)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">← Retour</button>
+                <button onClick={handleValiderReception} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">✓ Valider</button>
               </div>
             </div>
           )}
@@ -775,9 +740,7 @@ export default function Home() {
     const bobinesStock = bobines.filter(b => b.lieu === 'STOCK_PRINCIPAL')
     
     const diametresStock = Array.from(new Set(
-      bobinesStock
-        .filter(b => b.reception.type_materiel === 'Fil' && b.reception.diametre_fil)
-        .map(b => parseFloat(b.reception.diametre_fil!))
+      bobinesStock.filter(b => b.reception.type_materiel === 'Fil' && b.reception.diametre_fil).map(b => parseFloat(b.reception.diametre_fil!))
     )).sort((a, b) => a - b)
 
     const bobinesFiltrees = bobinesStock.filter(b => {
@@ -787,11 +750,7 @@ export default function Home() {
       }
       if (rechercheNomUsine) {
         const search = rechercheNomUsine.toUpperCase()
-        const match = 
-          b.code_bobine.toUpperCase().includes(search) ||
-          b.reception.matiere.toUpperCase().includes(search) ||
-          b.reception.durete.toUpperCase().includes(search) ||
-          b.reception.revetement.toUpperCase().includes(search)
+        const match = b.code_bobine.toUpperCase().includes(search) || b.reception.matiere.toUpperCase().includes(search) || b.reception.durete.toUpperCase().includes(search) || b.reception.revetement.toUpperCase().includes(search)
         if (!match) return false
       }
       return true
@@ -815,33 +774,19 @@ export default function Home() {
 
           {!selectedBobine ? (
             <div className="space-y-4">
-              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
-                📷 Scanner un code-barre
-              </button>
+              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">📷 Scanner un code-barre</button>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">🔍 Rechercher une bobine</label>
-                <input 
-                  type="text" 
-                  value={rechercheNomUsine}
-                  onChange={(e) => setRechercheNomUsine(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md" 
-                  placeholder="Code bobine, matière, dureté..."
-                />
+                <input type="text" value={rechercheNomUsine} onChange={(e) => setRechercheNomUsine(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-md" placeholder="Code bobine, matière, dureté..." />
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setFiltreDiametreUsine('')}
-                    className={`px-3 py-1 rounded-md text-sm font-semibold ${!filtreDiametreUsine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
-                    Tous
-                  </button>
+                  <button onClick={() => setFiltreDiametreUsine('')} className={`px-3 py-1 rounded-md text-sm font-semibold ${!filtreDiametreUsine ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>Tous</button>
                   {diametresStock.map(d => (
-                    <button key={d} onClick={() => setFiltreDiametreUsine(d.toString())}
-                      className={`px-3 py-1 rounded-md text-sm font-semibold ${filtreDiametreUsine === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
-                      Ø {d} mm
-                    </button>
+                    <button key={d} onClick={() => setFiltreDiametreUsine(d.toString())} className={`px-3 py-1 rounded-md text-sm font-semibold ${filtreDiametreUsine === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>Ø {d} mm</button>
                   ))}
                 </div>
               </div>
@@ -866,12 +811,9 @@ export default function Home() {
                     <p className="text-center py-4 text-gray-500">Aucune bobine trouvée</p>
                   ) : (
                     bobinesFiltrees.map(b => {
-                      const dim = b.reception.type_materiel === 'Fil'
-                        ? `Ø${b.reception.diametre_fil}`
-                        : `${b.reception.largeur_feuillard}x${b.reception.longueur_feuillard}`
+                      const dim = b.reception.type_materiel === 'Fil' ? `Ø${b.reception.diametre_fil}` : `${b.reception.largeur_feuillard}x${b.reception.longueur_feuillard}`
                       return (
-                        <div key={b.id} onClick={() => setSelectedBobine(b)}
-                          className="p-3 border rounded-md hover:bg-purple-50 cursor-pointer">
+                        <div key={b.id} onClick={() => setSelectedBobine(b)} className="p-3 border rounded-md hover:bg-purple-50 cursor-pointer">
                           <div className="flex justify-between items-start">
                             <div>
                               <div className="font-mono font-semibold">{b.code_bobine}</div>
@@ -896,16 +838,11 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">N° commande fabrication</label>
-                <input type="text" value={numCommandeFabrication} onChange={(e) => setNumCommandeFabrication(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-md" placeholder="CMD-001" />
+                <input type="text" value={numCommandeFabrication} onChange={(e) => setNumCommandeFabrication(e.target.value)} className="w-full px-4 py-2 border rounded-md" placeholder="CMD-001" />
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setSelectedBobine(null)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">
-                  ← Retour
-                </button>
-                <button onClick={handleVersUsine} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
-                  ✓ Valider
-                </button>
+                <button onClick={() => setSelectedBobine(null)} className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 rounded-md">← Retour</button>
+                <button onClick={handleVersUsine} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">✓ Valider</button>
               </div>
             </div>
           )}
@@ -931,13 +868,10 @@ export default function Home() {
 
           {!selectedBobine ? (
             <div className="space-y-4">
-              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
-                📷 Scanner
-              </button>
+              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">📷 Scanner</button>
               <div className="max-h-96 overflow-y-auto space-y-2">
                 {bobinesUsine.map(b => (
-                  <div key={b.id} onClick={() => setSelectedBobine(b)}
-                    className="p-3 border rounded-md hover:bg-indigo-50 cursor-pointer">
+                  <div key={b.id} onClick={() => setSelectedBobine(b)} className="p-3 border rounded-md hover:bg-indigo-50 cursor-pointer">
                     <div className="font-mono font-semibold">{b.code_bobine}</div>
                     <div className="text-sm text-gray-600">{b.num_commande_fabrication} - {b.poids_actuel} kg</div>
                   </div>
@@ -952,12 +886,9 @@ export default function Home() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Poids restant (kg)</label>
-                <input type="number" step="0.01" value={poidsRestant} onChange={(e) => setPoidsRestant(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-md" placeholder="15.5" />
+                <input type="number" step="0.01" value={poidsRestant} onChange={(e) => setPoidsRestant(e.target.value)} className="w-full px-4 py-2 border rounded-md" placeholder="15.5" />
               </div>
-              <button onClick={handleRetourUsine} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">
-                ✓ Valider (retour stock principal)
-              </button>
+              <button onClick={handleRetourUsine} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-md">✓ Valider (retour stock principal)</button>
             </div>
           )}
         </div>
@@ -982,13 +913,10 @@ export default function Home() {
 
           {!selectedBobine ? (
             <div className="space-y-4">
-              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">
-                📷 Scanner
-              </button>
+              <button onClick={startScanner} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md">📷 Scanner</button>
               <div className="max-h-96 overflow-y-auto space-y-2">
                 {bobinesStock.map(b => (
-                  <div key={b.id} onClick={() => setSelectedBobine(b)}
-                    className="p-3 border rounded-md hover:bg-red-50 cursor-pointer">
+                  <div key={b.id} onClick={() => setSelectedBobine(b)} className="p-3 border rounded-md hover:bg-red-50 cursor-pointer">
                     <div className="font-mono font-semibold">{b.code_bobine}</div>
                     <div className="text-sm text-gray-600">{b.reception.matiere} - {b.poids_actuel} kg</div>
                   </div>
@@ -1001,9 +929,7 @@ export default function Home() {
                 <p className="font-mono font-semibold text-lg">{selectedBobine.code_bobine}</p>
                 <p className="text-sm">{selectedBobine.poids_actuel} kg</p>
               </div>
-              <button onClick={handleRetourDechet} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-md">
-                ✓ Mettre au rebut
-              </button>
+              <button onClick={handleRetourDechet} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-md">✓ Mettre au rebut</button>
             </div>
           )}
         </div>
@@ -1024,15 +950,9 @@ export default function Home() {
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Filtrer par diamètre</label>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setDiametreFilter('')}
-                className={`px-4 py-2 rounded-md text-sm font-semibold ${!diametreFilter ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
-                Tous
-              </button>
+              <button onClick={() => setDiametreFilter('')} className={`px-4 py-2 rounded-md text-sm font-semibold ${!diametreFilter ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>Tous</button>
               {diametresDisponibles.map(d => (
-                <button key={d} onClick={() => setDiametreFilter(d.toString())}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold ${diametreFilter === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>
-                  Ø {d} mm
-                </button>
+                <button key={d} onClick={() => setDiametreFilter(d.toString())} className={`px-4 py-2 rounded-md text-sm font-semibold ${diametreFilter === d.toString() ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}>Ø {d} mm</button>
               ))}
             </div>
           </div>
@@ -1041,10 +961,7 @@ export default function Home() {
             <label className="block text-sm font-medium text-gray-700 mb-2">Imprimer étiquettes d'un lot</label>
             <div className="flex flex-wrap gap-2">
               {Object.values(lotsDisponibles).map((lot: any) => (
-                <button key={lot.id} onClick={() => handleImprimerLot(lot.id)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold">
-                  {lot.nom} ({lot.nb_bobines})
-                </button>
+                <button key={lot.id} onClick={() => handleImprimerLot(lot.id)} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-semibold">{lot.nom} ({lot.nb_bobines})</button>
               ))}
             </div>
           </div>
@@ -1089,14 +1006,9 @@ export default function Home() {
         <div className="min-h-screen bg-gray-50 p-6">
           <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
             <h1 className="text-2xl font-bold mb-6">🔐 Accès protégé</h1>
-            <input type="password" value={codeAcces} onChange={(e) => setCodeAcces(e.target.value)}
-              className="w-full px-4 py-2 border rounded-md mb-4" placeholder="Code à 4 chiffres" maxLength={4} />
-            <button onClick={handleCodeAcces} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-md">
-              Valider
-            </button>
-            <button onClick={() => setCurrentPage('home')} className="w-full mt-2 text-gray-600">
-              Retour
-            </button>
+            <input type="password" value={codeAcces} onChange={(e) => setCodeAcces(e.target.value)} className="w-full px-4 py-2 border rounded-md mb-4" placeholder="Code à 4 chiffres" maxLength={4} />
+            <button onClick={handleCodeAcces} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-md">Valider</button>
+            <button onClick={() => setCurrentPage('home')} className="w-full mt-2 text-gray-600">Retour</button>
           </div>
         </div>
       )
@@ -1114,108 +1026,66 @@ export default function Home() {
             }} className="text-red-600 hover:text-red-800">✕</button>
           </div>
 
-          {/* Gestion des items */}
           <div className="mb-8 border-b pb-6">
             <h2 className="text-lg font-semibold mb-4">📝 Gestion des items</h2>
             <ItemsManager onItemsChange={chargerItems} />
           </div>
 
-          {/* Code d'accès mobile */}
           <div className="mb-8 border-b pb-6">
             <h2 className="text-lg font-semibold mb-4">🔐 Code d'accès mobile</h2>
-            <p className="text-sm text-gray-600 mb-3">
-              Ce code est utilisé pour accéder aux infos des bobines depuis un smartphone (via QR code).
-            </p>
+            <p className="text-sm text-gray-600 mb-3">Ce code est utilisé pour accéder aux infos des bobines depuis un smartphone (via QR code).</p>
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Code actuel :</strong> {process.env.NEXT_PUBLIC_ACCESS_CODE || '1234'}
-              </p>
-              <p className="text-xs text-yellow-700 mt-2">
-                Pour modifier ce code, ajoutez la variable d'environnement <code>ACCESS_CODE</code> dans Vercel
-              </p>
+              <p className="text-sm text-yellow-800"><strong>Code actuel :</strong> {process.env.NEXT_PUBLIC_ACCESS_CODE || '1234'}</p>
+              <p className="text-xs text-yellow-700 mt-2">Pour modifier ce code, ajoutez la variable d'environnement <code>ACCESS_CODE</code> dans Vercel</p>
             </div>
           </div>
 
-          {/* Exports CSV */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">📊 Exports CSV</h2>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                💾 Stock actuel
-              </button>
-              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                📥 Tous mouvements
-              </button>
+              <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">💾 Stock actuel</button>
+              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">📥 Tous mouvements</button>
             </div>
           </div>
 
-          {/* Stats par commande */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">📈 Stats par commande</h2>
             <div className="flex gap-2">
-              <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)}
-                className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
-              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                Exporter
-              </button>
+              <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)} className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
+              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Exporter</button>
             </div>
           </div>
 
-          {/* Consommation */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">📉 Consommation</h2>
             <div className="flex gap-2 items-center">
-              <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)}
-                min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
+              <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)} min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
               <span>mois</span>
-              <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">
-                📈 Exporter
-              </button>
+              <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">📈 Exporter</button>
             </div>
           </div>
 
-          {/* Backup CSV unifié */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base</h2>
-            
             <div className="mb-4">
-              <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                📥 Exporter toute la base (1 fichier CSV)
-              </button>
-              <p className="text-xs text-gray-500 mt-2">
-                Télécharge 1 fichier CSV contenant : réceptions, bobines, mouvements et items
-              </p>
+              <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">📥 Exporter toute la base (1 fichier CSV)</button>
+              <p className="text-xs text-gray-500 mt-2">Télécharge 1 fichier CSV contenant : réceptions, bobines, mouvements et items</p>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
               <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
-              <p className="text-xs text-gray-600 mb-3">
-                Sélectionne le fichier CSV de backup :
-              </p>
+              <p className="text-xs text-gray-600 mb-3">Sélectionne le fichier CSV de backup :</p>
               <div className="flex items-center gap-2">
-                <input type="file" accept=".csv"
-                  onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                  className="flex-1 text-sm" />
+                <input type="file" accept=".csv" onChange={(e) => setBackupFile(e.target.files?.[0] || null)} className="flex-1 text-sm" />
               </div>
-              {backupFile && (
-                <p className="text-xs text-green-700 mt-2">
-                  ✅ Fichier sélectionné : {backupFile.name}
-                </p>
-              )}
-              <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                📤 Restaurer depuis le CSV
-              </button>
-              <p className="text-xs text-red-600 mt-2">
-                ⚠️ L'import écrase TOUTES les données actuelles.
-              </p>
+              {backupFile && (<p className="text-xs text-green-700 mt-2">✅ Fichier sélectionné : {backupFile.name}</p>)}
+              <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">📤 Restaurer depuis le CSV</button>
+              <p className="text-xs text-red-600 mt-2">⚠️ L'import écrase TOUTES les données actuelles.</p>
             </div>
           </div>
 
-          {/* Reset */}
           <div className="pt-4">
-            <button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-md">
-              ⚠️ Réinitialiser base de données
-            </button>
+            <button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-md">⚠️ Réinitialiser base de données</button>
           </div>
         </div>
       </div>
@@ -1224,25 +1094,20 @@ export default function Home() {
 
   return null
 
-  // ============ COMPOSANT ItemsManager ============
   function ItemsManager({ onItemsChange }: { onItemsChange: () => void }) {
     const [items, setItems] = useState<any[]>([])
     const [categorie, setCategorie] = useState<'MATIERE' | 'DURETE' | 'REVETEMENT'>('MATIERE')
     const [nouvelItem, setNouvelItem] = useState('')
     const [editingItem, setEditingItem] = useState<any>(null)
 
-    useEffect(() => {
-      chargerItemsCat()
-    }, [categorie])
+    useEffect(() => { chargerItemsCat() }, [categorie])
 
     const chargerItemsCat = async () => {
       try {
         const res = await fetch(`/api/items?categorie=${categorie}`)
         const data = await res.json()
         setItems(data)
-      } catch (error) {
-        console.error(error)
-      }
+      } catch (error) { console.error(error) }
     }
 
     const handleAjouter = async () => {
@@ -1261,9 +1126,7 @@ export default function Home() {
           const error = await res.json()
           alert(`❌ ${error.error}`)
         }
-      } catch (error) {
-        alert('❌ Erreur')
-      }
+      } catch (error) { alert('❌ Erreur') }
     }
 
     const handleModifier = async (item: any, nouveauNom: string) => {
@@ -1282,9 +1145,7 @@ export default function Home() {
           const error = await res.json()
           alert(`❌ ${error.error}`)
         }
-      } catch (error) {
-        alert('❌ Erreur')
-      }
+      } catch (error) { alert('❌ Erreur') }
     }
 
     const handleSupprimer = async (id: number) => {
@@ -1293,35 +1154,22 @@ export default function Home() {
         await fetch(`/api/items?id=${id}`, { method: 'DELETE' })
         chargerItemsCat()
         onItemsChange()
-      } catch (error) {
-        alert('❌ Erreur')
-      }
+      } catch (error) { alert('❌ Erreur') }
     }
 
-    const categorieLabels = {
-      MATIERE: 'Matières',
-      DURETE: 'Duretés',
-      REVETEMENT: 'Revêtements'
-    }
+    const categorieLabels = { MATIERE: 'Matières', DURETE: 'Duretés', REVETEMENT: 'Revêtements' }
 
     return (
       <div className="space-y-4">
         <div className="flex gap-2">
           {(['MATIERE', 'DURETE', 'REVETEMENT'] as const).map(cat => (
-            <button key={cat} onClick={() => setCategorie(cat)}
-              className={`px-4 py-2 rounded-md ${categorie === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>
-              {categorieLabels[cat]}
-            </button>
+            <button key={cat} onClick={() => setCategorie(cat)} className={`px-4 py-2 rounded-md ${categorie === cat ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>{categorieLabels[cat]}</button>
           ))}
         </div>
 
         <div className="flex gap-2">
-          <input type="text" value={nouvelItem} onChange={(e) => setNouvelItem(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAjouter()}
-            className="flex-1 px-4 py-2 border rounded-md" placeholder={`Nouveau ${categorieLabels[categorie].toLowerCase()}...`} />
-          <button onClick={handleAjouter} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-            ➕ Ajouter
-          </button>
+          <input type="text" value={nouvelItem} onChange={(e) => setNouvelItem(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAjouter()} className="flex-1 px-4 py-2 border rounded-md" placeholder={`Nouveau ${categorieLabels[categorie].toLowerCase()}...`} />
+          <button onClick={handleAjouter} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">➕ Ajouter</button>
         </div>
 
         <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -1332,22 +1180,15 @@ export default function Home() {
               <div key={item.id} className="flex items-center gap-2 p-2 border rounded-md">
                 {editingItem?.id === item.id ? (
                   <>
-                    <input type="text" value={editingItem.nom}
-                      onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })}
-                      onKeyDown={(e) => e.key === 'Enter' && handleModifier(item, editingItem.nom)}
-                      className="flex-1 px-3 py-1 border rounded-md" autoFocus />
-                    <button onClick={() => handleModifier(item, editingItem.nom)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm">✓</button>
-                    <button onClick={() => setEditingItem(null)}
-                      className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm">✕</button>
+                    <input type="text" value={editingItem.nom} onChange={(e) => setEditingItem({ ...editingItem, nom: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && handleModifier(item, editingItem.nom)} className="flex-1 px-3 py-1 border rounded-md" autoFocus />
+                    <button onClick={() => handleModifier(item, editingItem.nom)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm">✓</button>
+                    <button onClick={() => setEditingItem(null)} className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded-md text-sm">✕</button>
                   </>
                 ) : (
                   <>
                     <span className="flex-1 font-medium">{item.nom}</span>
-                    <button onClick={() => setEditingItem({ ...item })}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm">✏️ Modifier</button>
-                    <button onClick={() => handleSupprimer(item.id)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">🗑️</button>
+                    <button onClick={() => setEditingItem({ ...item })} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm">✏️ Modifier</button>
+                    <button onClick={() => handleSupprimer(item.id)} className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">🗑️</button>
                   </>
                 )}
               </div>
