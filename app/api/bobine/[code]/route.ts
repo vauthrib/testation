@@ -3,13 +3,14 @@ import { prisma } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const code = params.code.toUpperCase()
+    const { code } = await params
+    const codeUpper = code.toUpperCase()
     
     const bobine = await prisma.bobine.findUnique({
-      where: { code_bobine: code },
+      where: { code_bobine: codeUpper },
       include: {
         reception: true,
         mouvements: {
