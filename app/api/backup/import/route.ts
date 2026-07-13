@@ -63,50 +63,86 @@ function splitSections(content: string): Record<string, string> {
   return result
 }
 
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null
+  
+  // Essayer plusieurs formats
+  const formats = [
+    dateStr, // ISO format
+    dateStr.replace(' ', 'T'), // Espace vers T
+    dateStr.split(' ')[0] + 'T00:00:00.000Z', // Juste la date
+  ]
+  
+  for (const fmt of formats) {
+    const date = new Date(fmt)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+  }
+  
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     
-    // Support des 2 formats : 4 fichiers séparés OU 1 fichier complet
     const allFile = formData.get('all') as File | null
-    const receptionsFile = formData.get('receptions') as File | null
-    const bobinesFile = formData.get('bobines') as File | null
-    const mouvementsFile = formData.get('mouvements') as File | null
-    const itemsFile = formData.get('items') as File | null
 
-    let receptionsText = ''
-    let bobinesText = ''
-    let mouvementsText = ''
-    let itemsText = ''
-
-    if (allFile && allFile.size > 0) {
-      // Format unifié
-      const content = (await allFile.text()).replace(/^\uFEFF/, '')
-      const sections = splitSections(content)
-      receptionsText = sections.RECEPTIONS || ''
-      bobinesText = sections.BOBINES || ''
-      mouvementsText = sections.MOUVEMENTS || ''
-      itemsText = sections.ITEMS || ''
-    } else {
-      // Format 4 fichiers séparés
-      if (receptionsFile && receptionsFile.size > 0) receptionsText = (await receptionsFile.text()).replace(/^\uFEFF/, '')
-      if (bobinesFile && bobinesFile.size > 0) bobinesText = (await bobinesFile.text()).replace(/^\uFEFF/, '')
-      if (mouvementsFile && mouvementsFile.size > 0) mouvementsText = (await mouvementsFile.text()).replace(/^\uFEFF/, '')
-      if (itemsFile && itemsFile.size > 0) itemsText = (await itemsFile.text()).replace(/^\uFEFF/, '')
+    if (!allFile || allFile.size === 0) {
+      return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
-    // Effacer la base
-    await prisma.mouvement.deleteMany()
-    await prisma.bobine.deleteMany()
-    await prisma.reception.deleteMany()
-    await prisma.itemPersonnalise.deleteMany()
+    // Parser le contenu
+    const content = (await allFile.text()).replace(/^\uFEFF/, '')
+    const sections = splitSections(content)
+    
+    const receptionsText = sections.RECEPTIONS || ''
+    const bobinesText = sections.BOBINES || ''
+    const mouvementsText = sections.MOUVEMENTS || ''
+    const itemsText = sections.ITEMS || ''
 
-    // Importer les items
-    if (itemsText) {
-      const { rows } = parseSection(itemsText)
-      for (const row of rows) {
+    // VALIDATION AVANT suppression
+    const receptionsData = receptionsText ? parseSection(receptionsText) : { headers: [], rows: [] }
+    const bobinesData = bobinesText ? parseSection(bobinesText) : { headers: [], rows: [] }
+    const mouvementsData = mouvementsText ? parseSection(mouvementsText) : { headers: [], rows: [] }
+    const itemsData = itemsText ? parseSection(itemsText) : { headers: [], rows: [] }
+
+    // Valider les dates des réceptions
+    for (const row of receptionsData.rows) {
+      const date = parseDate(row.date_reception)
+      if (!date) {
+        return NextResponse.json({ 
+          error: `Date invalide pour la réception ID ${row.id}: "${row.date_reception}". Format attendu: YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS` 
+        }, { status: 400 })
+      }
+    }
+
+    // Valider les dates des mouvements
+    for (const row of mouvementsData.rows) {
+      const date = parseDate(row.date_mouvement)
+      if (!date) {
+        return NextResponse.json({ 
+          error: `Date invalide pour le mouvement ID ${row.id}: "${row.date_mouvement}". Format attendu: YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS` 
+        }, { status: 400 })
+      }
+    }
+
+    // Tout est valide, on peut procéder avec une transaction
+    await prisma.$transaction(async (tx) => {
+      // Effacer dans l'ordre
+      await tx.mouvement.deleteMany()
+      await tx.bobine.deleteMany()
+      await tx.reception.deleteMany()
+      await tx.itemPersonnalise.deleteMany()
+
+      const receptionIdMap = new Map<number, number>()
+      const bobineIdMap = new Map<number, number>()
+
+      // Importer les items
+      for (const row of itemsData.rows) {
         try {
-          await prisma.itemPersonnalise.create({
+          await tx.itemPersonnalise.create({
             data: {
               categorie: row.categorie as any,
               nom: row.nom,
@@ -115,17 +151,14 @@ export async function POST(request: NextRequest) {
           })
         } catch (e) { /* ignorer doublons */ }
       }
-    }
 
-    const receptionIdMap = new Map<number, number>()
-    const bobineIdMap = new Map<number, number>()
-
-    // Importer les réceptions
-    if (receptionsText) {
-      const { rows } = parseSection(receptionsText)
-      for (const row of rows) {
+      // Importer les réceptions
+      for (const row of receptionsData.rows) {
         const oldId = parseInt(row.id)
-        const newReception = await prisma.reception.create({
+        const date = parseDate(row.date_reception)
+        if (!date) continue
+        
+        const newReception = await tx.reception.create({
           data: {
             code_fournisseur: row.code_fournisseur,
             num_commande: row.num_commande,
@@ -137,23 +170,20 @@ export async function POST(request: NextRequest) {
             matiere: row.matiere,
             durete: row.durete,
             revetement: row.revetement,
-            date_reception: new Date(row.date_reception)
+            date_reception: date
           }
         })
         receptionIdMap.set(oldId, newReception.id)
       }
-    }
 
-    // Importer les bobines
-    if (bobinesText) {
-      const { rows } = parseSection(bobinesText)
-      for (const row of rows) {
+      // Importer les bobines
+      for (const row of bobinesData.rows) {
         const oldId = parseInt(row.id)
         const oldReceptionId = parseInt(row.reception_id)
         const newReceptionId = receptionIdMap.get(oldReceptionId)
         if (!newReceptionId) continue
         
-        const newBobine = await prisma.bobine.create({
+        const newBobine = await tx.bobine.create({
           data: {
             reception_id: newReceptionId,
             code_bobine: row.code_bobine,
@@ -167,17 +197,17 @@ export async function POST(request: NextRequest) {
         })
         bobineIdMap.set(oldId, newBobine.id)
       }
-    }
 
-    // Importer les mouvements
-    if (mouvementsText) {
-      const { rows } = parseSection(mouvementsText)
-      for (const row of rows) {
+      // Importer les mouvements
+      for (const row of mouvementsData.rows) {
         const oldBobineId = parseInt(row.bobine_id)
         const newBobineId = bobineIdMap.get(oldBobineId)
         if (!newBobineId) continue
 
-        await prisma.mouvement.create({
+        const date = parseDate(row.date_mouvement)
+        if (!date) continue
+
+        await tx.mouvement.create({
           data: {
             bobine_id: newBobineId,
             type_mouvement: row.type_mouvement as any,
@@ -186,11 +216,11 @@ export async function POST(request: NextRequest) {
             client: row.client || null,
             texte_libre: row.texte_libre || null,
             lieu_destination: row.lieu_destination ? (row.lieu_destination as any) : null,
-            date_mouvement: new Date(row.date_mouvement)
+            date_mouvement: date
           }
         })
       }
-    }
+    })
 
     return NextResponse.json({ message: 'Base restaurée avec succès' })
   } catch (error) {
