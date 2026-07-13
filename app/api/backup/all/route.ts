@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import archiver from 'archiver'
 
 function csvEscape(value: any): string {
   if (value === null || value === undefined) return ''
@@ -12,14 +11,12 @@ function csvEscape(value: any): string {
 }
 
 function toCsv(headers: string[], rows: any[][]): string {
-  const BOM = '\uFEFF'
   const lines = [headers.join(';'), ...rows.map(r => r.map(csvEscape).join(';'))]
-  return BOM + lines.join('\n')
+  return lines.join('\n')
 }
 
 export async function GET() {
   try {
-    // Récupérer toutes les données
     const [receptions, bobines, mouvements, items] = await Promise.all([
       prisma.reception.findMany({ orderBy: { id: 'asc' } }),
       prisma.bobine.findMany({ orderBy: { id: 'asc' } }),
@@ -27,7 +24,7 @@ export async function GET() {
       prisma.itemPersonnalise.findMany({ orderBy: { id: 'asc' } })
     ])
 
-    // CSV Réceptions
+    // Section Réceptions
     const receptionsHeaders = ['id', 'code_fournisseur', 'num_commande', 'num_type_produit', 'type_materiel',
       'diametre_fil', 'longueur_feuillard', 'largeur_feuillard', 'matiere', 'durete', 'revetement', 'date_reception']
     const receptionsRows = receptions.map(r => [
@@ -35,9 +32,8 @@ export async function GET() {
       r.diametre_fil?.toString() || '', r.longueur_feuillard?.toString() || '', r.largeur_feuillard?.toString() || '',
       r.matiere, r.durete, r.revetement, r.date_reception.toISOString()
     ])
-    const receptionsCsv = toCsv(receptionsHeaders, receptionsRows)
 
-    // CSV Bobines
+    // Section Bobines
     const bobinesHeaders = ['id', 'reception_id', 'code_bobine', 'num_bobine', 'poids_initial', 'poids_actuel',
       'statut', 'lieu', 'num_commande_fabrication']
     const bobinesRows = bobines.map(b => [
@@ -45,9 +41,8 @@ export async function GET() {
       b.poids_initial.toString(), b.poids_actuel.toString(),
       b.statut, b.lieu, b.num_commande_fabrication || ''
     ])
-    const bobinesCsv = toCsv(bobinesHeaders, bobinesRows)
 
-    // CSV Mouvements
+    // Section Mouvements
     const mouvementsHeaders = ['id', 'bobine_id', 'type_mouvement', 'poids_mouvement', 'n_commande_client',
       'client', 'texte_libre', 'lieu_destination', 'date_mouvement']
     const mouvementsRows = mouvements.map(m => [
@@ -55,38 +50,33 @@ export async function GET() {
       m.n_commande_client || '', m.client || '', m.texte_libre || '',
       m.lieu_destination || '', m.date_mouvement.toISOString()
     ])
-    const mouvementsCsv = toCsv(mouvementsHeaders, mouvementsRows)
 
-    // CSV Items
+    // Section Items
     const itemsHeaders = ['id', 'categorie', 'nom', 'ordre']
     const itemsRows = items.map(i => [i.id, i.categorie, i.nom, i.ordre])
-    const itemsCsv = toCsv(itemsHeaders, itemsRows)
 
-    // Créer le ZIP
-    const archive = archiver('zip', { zlib: { level: 9 } })
-    const chunks: Buffer[] = []
-
-    archive.on('data', (chunk) => chunks.push(chunk))
+    // Construire le CSV complet avec sections
+    const BOM = '\uFEFF'
+    const sections = [
+      '###SECTION:RECEPTIONS###',
+      toCsv(receptionsHeaders, receptionsRows),
+      '',
+      '###SECTION:BOBINES###',
+      toCsv(bobinesHeaders, bobinesRows),
+      '',
+      '###SECTION:MOUVEMENTS###',
+      toCsv(mouvementsHeaders, mouvementsRows),
+      '',
+      '###SECTION:ITEMS###',
+      toCsv(itemsHeaders, itemsRows)
+    ].join('\n')
 
     const date = new Date().toISOString().split('T')[0]
-    archive.append(receptionsCsv, { name: 'receptions.csv' })
-    archive.append(bobinesCsv, { name: 'bobines.csv' })
-    archive.append(mouvementsCsv, { name: 'mouvements.csv' })
-    archive.append(itemsCsv, { name: 'items.csv' })
-    archive.finalize()
 
-    // Attendre la fin de l'archivage
-    await new Promise<void>((resolve, reject) => {
-      archive.on('end', () => resolve())
-      archive.on('error', (err) => reject(err))
-    })
-
-    const buffer = Buffer.concat(chunks)
-
-    return new NextResponse(buffer, {
+    return new NextResponse(BOM + sections, {
       headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="backup_stock_bobines_${date}.zip"`
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="backup_stock_bobines_${date}.csv"`
       }
     })
   } catch (error) {

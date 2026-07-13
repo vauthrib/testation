@@ -83,17 +83,14 @@ export default function Home() {
   const [itemsDurete, setItemsDurete] = useState<any[]>([])
   const [itemsRev, setItemsRev] = useState<any[]>([])
 
-  const [backupFile, setBackupFile] = useState<File | null>(null)
+  const [importFiles, setImportFiles] = useState<{
+    receptions: File | null
+    bobines: File | null
+    mouvements: File | null
+    items: File | null
+  }>({ receptions: null, bobines: null, mouvements: null, items: null })
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
-
-  // Fonction pour obtenir l'URL de base
-  const getBaseUrl = () => {
-    if (typeof window !== 'undefined') {
-      return window.location.origin
-    }
-    return 'https://stock-bobines.vercel.app'
-  }
 
   useEffect(() => {
     chargerBobines()
@@ -153,29 +150,31 @@ export default function Home() {
     }
   }
 
+  // Export base en ZIP
   const handleExportBase = async () => {
     try {
-      const res = await fetch('/api/backup/all')
+      const res = await fetch('/api/backup/zip')
       if (!res.ok) throw new Error('Erreur serveur')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       const date = new Date().toISOString().split('T')[0]
-      a.download = `backup_stock_bobines_${date}.csv`
+      a.download = `backup_stock_bobines_${date}.zip`
       document.body.appendChild(a)
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-      alert('✅ Fichier CSV de backup téléchargé')
+      alert('✅ ZIP téléchargé avec les 4 fichiers CSV')
     } catch (error) {
       alert('❌ Erreur lors de l\'export')
     }
   }
 
+  // Import base
   const handleImportBase = async () => {
-    if (!backupFile) {
-      alert('⚠️ Veuillez sélectionner un fichier CSV')
+    if (!importFiles.receptions && !importFiles.bobines && !importFiles.mouvements && !importFiles.items) {
+      alert('⚠️ Veuillez sélectionner au moins un fichier CSV')
       return
     }
 
@@ -185,7 +184,10 @@ export default function Home() {
 
     try {
       const formData = new FormData()
-      formData.append('all', backupFile)
+      if (importFiles.receptions) formData.append('receptions', importFiles.receptions)
+      if (importFiles.bobines) formData.append('bobines', importFiles.bobines)
+      if (importFiles.mouvements) formData.append('mouvements', importFiles.mouvements)
+      if (importFiles.items) formData.append('items', importFiles.items)
 
       const res = await fetch('/api/backup/import', {
         method: 'POST',
@@ -196,7 +198,7 @@ export default function Home() {
         alert('✅ Base restaurée avec succès')
         chargerBobines()
         chargerItems()
-        setBackupFile(null)
+        setImportFiles({ receptions: null, bobines: null, mouvements: null, items: null })
       } else {
         const error = await res.json()
         alert(`❌ ${error.error}`)
@@ -206,6 +208,7 @@ export default function Home() {
     }
   }
 
+  // Wizard Arrivage
   const handleEtape1 = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -496,8 +499,6 @@ export default function Home() {
 
   // ============ PAGE ÉTIQUETTES ============
   if (showEtiquette && bobinesToPrint.length > 0) {
-    const baseUrl = getBaseUrl()
-    
     return (
       <>
         <div className="min-h-screen bg-gray-50 p-6">
@@ -525,7 +526,6 @@ export default function Home() {
                 const dimension = r.type_materiel === 'Fil' 
                   ? `Ø${r.diametre_fil}`
                   : `${r.largeur_feuillard}x${r.longueur_feuillard}`
-                const qrUrl = `${baseUrl}/bobine/${bobine.code_bobine}`
 
                 return (
                   <div key={index} className="etiquette">
@@ -540,7 +540,7 @@ export default function Home() {
                         <p className="etiquette-gros">{r.revetement}</p>
                       </div>
                       <div className="etiquette-right">
-                        <QRCodeSVG value={qrUrl} size={90} />
+                        <QRCodeSVG value={bobine.code_bobine} size={90} />
                       </div>
                     </div>
                   </div>
@@ -1120,22 +1120,6 @@ export default function Home() {
             <ItemsManager onItemsChange={chargerItems} />
           </div>
 
-          {/* Code d'accès mobile */}
-          <div className="mb-8 border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">🔐 Code d'accès mobile</h2>
-            <p className="text-sm text-gray-600 mb-3">
-              Ce code est utilisé pour accéder aux infos des bobines depuis un smartphone (via QR code).
-            </p>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Code actuel :</strong> {process.env.NEXT_PUBLIC_ACCESS_CODE || '1234'}
-              </p>
-              <p className="text-xs text-yellow-700 mt-2">
-                Pour modifier ce code, ajoutez la variable d'environnement <code>ACCESS_CODE</code> dans Vercel
-              </p>
-            </div>
-          </div>
-
           {/* Exports CSV */}
           <div className="border-b pb-4 mb-4">
             <h2 className="text-lg font-semibold mb-2">📊 Exports CSV</h2>
@@ -1174,36 +1158,52 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Backup CSV unifié */}
+          {/* Backup CSV complet en ZIP */}
           <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base</h2>
+            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base (ZIP)</h2>
             
             <div className="mb-4">
               <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
-                📥 Exporter toute la base (1 fichier CSV)
+                📥 Exporter toute la base (ZIP avec 4 CSV)
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                Télécharge 1 fichier CSV contenant : réceptions, bobines, mouvements et items
+                Télécharge 1 fichier ZIP contenant : receptions.csv, bobines.csv, mouvements.csv, items.csv
               </p>
             </div>
 
             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
               <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
               <p className="text-xs text-gray-600 mb-3">
-                Sélectionne le fichier CSV de backup :
+                Décompresse le ZIP et sélectionne les 4 fichiers CSV ci-dessous :
               </p>
-              <div className="flex items-center gap-2">
-                <input type="file" accept=".csv"
-                  onChange={(e) => setBackupFile(e.target.files?.[0] || null)}
-                  className="flex-1 text-sm" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Réceptions :</label>
+                  <input type="file" accept=".csv" 
+                    onChange={(e) => setImportFiles({ ...importFiles, receptions: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Bobines :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, bobines: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Mouvements :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, mouvements: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="w-32 text-sm font-medium">Items :</label>
+                  <input type="file" accept=".csv"
+                    onChange={(e) => setImportFiles({ ...importFiles, items: e.target.files?.[0] || null })}
+                    className="flex-1 text-sm" />
+                </div>
               </div>
-              {backupFile && (
-                <p className="text-xs text-green-700 mt-2">
-                  ✅ Fichier sélectionné : {backupFile.name}
-                </p>
-              )}
               <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                📤 Restaurer depuis le CSV
+                📤 Restaurer depuis les CSV
               </button>
               <p className="text-xs text-red-600 mt-2">
                 ⚠️ L'import écrase TOUTES les données actuelles.
