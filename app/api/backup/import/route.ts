@@ -28,11 +28,8 @@ function parseCsvLine(line: string): string[] {
 
 function parseDate(dateStr: string): Date | null {
   if (!dateStr || dateStr.trim() === '') return null
-  
-  // Nettoyer la chaîne
   const clean = dateStr.trim()
   
-  // Essayer plusieurs formats
   const formats = [
     clean,
     clean.replace(' ', 'T'),
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Lire le contenu
     const content = await allFile.text()
-    const cleanContent = content.replace(/^\uFEFF/, '') // Enlever le BOM
+    const cleanContent = content.replace(/^\uFEFF/, '')
     
     // Séparer par sections
     const sections: Record<string, string[]> = {}
@@ -70,16 +67,12 @@ export async function POST(request: NextRequest) {
     
     for (const line of lines) {
       const trimmed = line.trim()
-      
-      // Détecter le début d'une section
       const sectionMatch = trimmed.match(/^###SECTION:(\w+)###$/)
       if (sectionMatch) {
         currentSection = sectionMatch[1]
         sections[currentSection] = []
         continue
       }
-      
-      // Ajouter la ligne à la section courante
       if (currentSection && trimmed) {
         sections[currentSection].push(trimmed)
       }
@@ -109,47 +102,69 @@ export async function POST(request: NextRequest) {
     const itemsData = parseSectionData('ITEMS')
 
     console.log('Sections trouvées:', Object.keys(sections))
-    console.log('Réceptions:', receptionsData.length, 'lignes')
-    console.log('Bobines:', bobinesData.length, 'lignes')
-    console.log('Mouvements:', mouvementsData.length, 'lignes')
-    console.log('Items:', itemsData.length, 'lignes')
+    console.log('Réceptions:', receptionsData.length)
+    console.log('Bobines:', bobinesData.length)
+    console.log('Mouvements:', mouvementsData.length)
+    console.log('Items:', itemsData.length)
 
-    // VALIDATION : Vérifier toutes les dates AVANT de supprimer
+    // VALIDATION AVANT import
+    const receptionIdMap = new Map<number, number>()
+    const bobineIdMap = new Map<number, number>()
+    
+    // Valider les réceptions
     for (let i = 0; i < receptionsData.length; i++) {
       const row = receptionsData[i]
+      if (!row.id || !row.code_fournisseur || !row.num_commande || !row.num_type_produit) {
+        return NextResponse.json({ 
+          error: `Réception ligne ${i + 1}: champs manquants (id, code_fournisseur, num_commande, num_type_produit)` 
+        }, { status: 400 })
+      }
       const date = parseDate(row.date_reception)
       if (!date) {
         return NextResponse.json({ 
-          error: `Date invalide pour la réception ligne ${i + 1}: "${row.date_reception}". Valeurs: id=${row.id}, code=${row.code_fournisseur}` 
+          error: `Réception ligne ${i + 1}: date invalide "${row.date_reception}"` 
         }, { status: 400 })
       }
     }
 
+    // Valider les bobines
+    for (let i = 0; i < bobinesData.length; i++) {
+      const row = bobinesData[i]
+      if (!row.id || !row.reception_id || !row.code_bobine) {
+        return NextResponse.json({ 
+          error: `Bobine ligne ${i + 1}: champs manquants (id, reception_id, code_bobine)` 
+        }, { status: 400 })
+      }
+    }
+
+    // Valider les mouvements
     for (let i = 0; i < mouvementsData.length; i++) {
       const row = mouvementsData[i]
+      if (!row.id || !row.bobine_id) {
+        return NextResponse.json({ 
+          error: `Mouvement ligne ${i + 1}: champs manquants (id, bobine_id)` 
+        }, { status: 400 })
+      }
       const date = parseDate(row.date_mouvement)
       if (!date) {
         return NextResponse.json({ 
-          error: `Date invalide pour le mouvement ligne ${i + 1}: "${row.date_mouvement}". Valeurs: id=${row.id}, bobine_id=${row.bobine_id}` 
+          error: `Mouvement ligne ${i + 1}: date invalide "${row.date_mouvement}"` 
         }, { status: 400 })
       }
     }
 
-    // Tout est valide, procéder avec une transaction
-    await prisma.$transaction(async (tx) => {
+    // TOUT EST VALIDE, on peut procéder SANS transaction (plus rapide)
+    try {
       // Effacer dans l'ordre
-      await tx.mouvement.deleteMany()
-      await tx.bobine.deleteMany()
-      await tx.reception.deleteMany()
-      await tx.itemPersonnalise.deleteMany()
-
-      const receptionIdMap = new Map<number, number>()
-      const bobineIdMap = new Map<number, number>()
+      await prisma.mouvement.deleteMany()
+      await prisma.bobine.deleteMany()
+      await prisma.reception.deleteMany()
+      await prisma.itemPersonnalise.deleteMany()
 
       // Importer les items
       for (const row of itemsData) {
         try {
-          await tx.itemPersonnalise.create({
+          await prisma.itemPersonnalise.create({
             data: {
               categorie: row.categorie as any,
               nom: row.nom,
@@ -165,23 +180,20 @@ export async function POST(request: NextRequest) {
       for (const row of receptionsData) {
         const oldId = parseInt(row.id)
         const date = parseDate(row.date_reception)
-        if (!date || isNaN(oldId)) {
-          console.log('Réception ignorée:', row)
-          continue
-        }
+        if (!date || isNaN(oldId)) continue
         
-        const newReception = await tx.reception.create({
+        const newReception = await prisma.reception.create({
           data: {
-            code_fournisseur: row.code_fournisseur || '',
-            num_commande: row.num_commande || '',
-            num_type_produit: row.num_type_produit || '',
+            code_fournisseur: row.code_fournisseur,
+            num_commande: row.num_commande,
+            num_type_produit: row.num_type_produit,
             type_materiel: (row.type_materiel || 'Fil') as any,
             diametre_fil: row.diametre_fil ? parseFloat(row.diametre_fil) : null,
             longueur_feuillard: row.longueur_feuillard ? parseFloat(row.longueur_feuillard) : null,
             largeur_feuillard: row.largeur_feuillard ? parseFloat(row.largeur_feuillard) : null,
-            matiere: row.matiere || '',
-            durete: row.durete || '',
-            revetement: row.revetement || '',
+            matiere: row.matiere,
+            durete: row.durete,
+            revetement: row.revetement,
             date_reception: date
           }
         })
@@ -194,15 +206,12 @@ export async function POST(request: NextRequest) {
         const oldReceptionId = parseInt(row.reception_id)
         const newReceptionId = receptionIdMap.get(oldReceptionId)
         
-        if (!newReceptionId || isNaN(oldId)) {
-          console.log('Bobine ignorée:', row)
-          continue
-        }
+        if (!newReceptionId || isNaN(oldId)) continue
         
-        const newBobine = await tx.bobine.create({
+        const newBobine = await prisma.bobine.create({
           data: {
             reception_id: newReceptionId,
-            code_bobine: row.code_bobine || '',
+            code_bobine: row.code_bobine,
             num_bobine: parseInt(row.num_bobine) || 1,
             poids_initial: parseFloat(row.poids_initial) || 0,
             poids_actuel: parseFloat(row.poids_actuel) || 0,
@@ -220,12 +229,9 @@ export async function POST(request: NextRequest) {
         const newBobineId = bobineIdMap.get(oldBobineId)
         const date = parseDate(row.date_mouvement)
         
-        if (!newBobineId || !date) {
-          console.log('Mouvement ignoré:', row)
-          continue
-        }
+        if (!newBobineId || !date) continue
 
-        await tx.mouvement.create({
+        await prisma.mouvement.create({
           data: {
             bobine_id: newBobineId,
             type_mouvement: (row.type_mouvement || 'ENTREE_FOURNISSEUR') as any,
@@ -238,19 +244,24 @@ export async function POST(request: NextRequest) {
           }
         })
       }
-    })
 
-    return NextResponse.json({ 
-      message: 'Base restaurée avec succès',
-      stats: {
-        receptions: receptionsData.length,
-        bobines: bobinesData.length,
-        mouvements: mouvementsData.length,
-        items: itemsData.length
-      }
-    })
+      return NextResponse.json({ 
+        message: 'Base restaurée avec succès',
+        stats: {
+          receptions: receptionsData.length,
+          bobines: bobinesData.length,
+          mouvements: mouvementsData.length,
+          items: itemsData.length
+        }
+      })
+    } catch (importError) {
+      console.error('Erreur pendant l\'import:', importError)
+      return NextResponse.json({ 
+        error: 'Erreur pendant l\'import: ' + (importError as Error).message + '. Les données ont peut-être été partiellement importées.' 
+      }, { status: 500 })
+    }
   } catch (error) {
-    console.error('Erreur import:', error)
+    console.error('Erreur générale:', error)
     return NextResponse.json({ error: 'Erreur serveur: ' + (error as Error).message }, { status: 500 })
   }
 }
