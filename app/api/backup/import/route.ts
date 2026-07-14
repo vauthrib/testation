@@ -5,6 +5,7 @@ function parseCsvLine(line: string): string[] {
   const result: string[] = []
   let current = ''
   let inQuotes = false
+  
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
     if (char === '"') {
@@ -25,52 +26,18 @@ function parseCsvLine(line: string): string[] {
   return result
 }
 
-function parseSection(text: string): { headers: string[], rows: Record<string, string>[] } {
-  const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.startsWith('###SECTION'))
-  if (lines.length === 0) return { headers: [], rows: [] }
-  
-  const headers = parseCsvLine(lines[0])
-  const rows = lines.slice(1).map(line => {
-    const values = parseCsvLine(line)
-    const obj: Record<string, string> = {}
-    headers.forEach((h, idx) => {
-      obj[h] = values[idx] || ''
-    })
-    return obj
-  })
-
-  return { headers, rows }
-}
-
-function splitSections(content: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  const sectionRegex = /###SECTION:(\w+)###/g
-  let match
-  const sections: { name: string, index: number }[] = []
-  
-  while ((match = sectionRegex.exec(content)) !== null) {
-    sections.push({ name: match[1], index: match.index + match[0].length })
-  }
-  
-  for (let i = 0; i < sections.length; i++) {
-    const start = sections[i].index
-    const end = i + 1 < sections.length 
-      ? content.lastIndexOf('###SECTION:', sections[i + 1].index)
-      : content.length
-    result[sections[i].name] = content.substring(start, end).trim()
-  }
-  
-  return result
-}
-
 function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null
+  if (!dateStr || dateStr.trim() === '') return null
+  
+  // Nettoyer la chaîne
+  const clean = dateStr.trim()
   
   // Essayer plusieurs formats
   const formats = [
-    dateStr, // ISO format
-    dateStr.replace(' ', 'T'), // Espace vers T
-    dateStr.split(' ')[0] + 'T00:00:00.000Z', // Juste la date
+    clean,
+    clean.replace(' ', 'T'),
+    clean.split(' ')[0] + 'T00:00:00.000Z',
+    clean.split('T')[0] + 'T00:00:00.000Z'
   ]
   
   for (const fmt of formats) {
@@ -86,49 +53,89 @@ function parseDate(dateStr: string): Date | null {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    
     const allFile = formData.get('all') as File | null
 
     if (!allFile || allFile.size === 0) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
-    // Parser le contenu
-    const content = (await allFile.text()).replace(/^\uFEFF/, '')
-    const sections = splitSections(content)
+    // Lire le contenu
+    const content = await allFile.text()
+    const cleanContent = content.replace(/^\uFEFF/, '') // Enlever le BOM
     
-    const receptionsText = sections.RECEPTIONS || ''
-    const bobinesText = sections.BOBINES || ''
-    const mouvementsText = sections.MOUVEMENTS || ''
-    const itemsText = sections.ITEMS || ''
+    // Séparer par sections
+    const sections: Record<string, string[]> = {}
+    let currentSection = ''
+    const lines = cleanContent.split(/\r?\n/)
+    
+    for (const line of lines) {
+      const trimmed = line.trim()
+      
+      // Détecter le début d'une section
+      const sectionMatch = trimmed.match(/^###SECTION:(\w+)###$/)
+      if (sectionMatch) {
+        currentSection = sectionMatch[1]
+        sections[currentSection] = []
+        continue
+      }
+      
+      // Ajouter la ligne à la section courante
+      if (currentSection && trimmed) {
+        sections[currentSection].push(trimmed)
+      }
+    }
 
-    // VALIDATION AVANT suppression
-    const receptionsData = receptionsText ? parseSection(receptionsText) : { headers: [], rows: [] }
-    const bobinesData = bobinesText ? parseSection(bobinesText) : { headers: [], rows: [] }
-    const mouvementsData = mouvementsText ? parseSection(mouvementsText) : { headers: [], rows: [] }
-    const itemsData = itemsText ? parseSection(itemsText) : { headers: [], rows: [] }
+    // Parser chaque section
+    const parseSectionData = (sectionName: string) => {
+      const sectionLines = sections[sectionName] || []
+      if (sectionLines.length === 0) return []
+      
+      const headers = parseCsvLine(sectionLines[0])
+      const rows = sectionLines.slice(1).map(line => {
+        const values = parseCsvLine(line)
+        const obj: Record<string, string> = {}
+        headers.forEach((h, idx) => {
+          obj[h] = values[idx] || ''
+        })
+        return obj
+      })
+      
+      return rows
+    }
 
-    // Valider les dates des réceptions
-    for (const row of receptionsData.rows) {
+    const receptionsData = parseSectionData('RECEPTIONS')
+    const bobinesData = parseSectionData('BOBINES')
+    const mouvementsData = parseSectionData('MOUVEMENTS')
+    const itemsData = parseSectionData('ITEMS')
+
+    console.log('Sections trouvées:', Object.keys(sections))
+    console.log('Réceptions:', receptionsData.length, 'lignes')
+    console.log('Bobines:', bobinesData.length, 'lignes')
+    console.log('Mouvements:', mouvementsData.length, 'lignes')
+    console.log('Items:', itemsData.length, 'lignes')
+
+    // VALIDATION : Vérifier toutes les dates AVANT de supprimer
+    for (let i = 0; i < receptionsData.length; i++) {
+      const row = receptionsData[i]
       const date = parseDate(row.date_reception)
       if (!date) {
         return NextResponse.json({ 
-          error: `Date invalide pour la réception ID ${row.id}: "${row.date_reception}". Format attendu: YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS` 
+          error: `Date invalide pour la réception ligne ${i + 1}: "${row.date_reception}". Valeurs: id=${row.id}, code=${row.code_fournisseur}` 
         }, { status: 400 })
       }
     }
 
-    // Valider les dates des mouvements
-    for (const row of mouvementsData.rows) {
+    for (let i = 0; i < mouvementsData.length; i++) {
+      const row = mouvementsData[i]
       const date = parseDate(row.date_mouvement)
       if (!date) {
         return NextResponse.json({ 
-          error: `Date invalide pour le mouvement ID ${row.id}: "${row.date_mouvement}". Format attendu: YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS` 
+          error: `Date invalide pour le mouvement ligne ${i + 1}: "${row.date_mouvement}". Valeurs: id=${row.id}, bobine_id=${row.bobine_id}` 
         }, { status: 400 })
       }
     }
 
-    // Tout est valide, on peut procéder avec une transaction
+    // Tout est valide, procéder avec une transaction
     await prisma.$transaction(async (tx) => {
       // Effacer dans l'ordre
       await tx.mouvement.deleteMany()
@@ -140,7 +147,7 @@ export async function POST(request: NextRequest) {
       const bobineIdMap = new Map<number, number>()
 
       // Importer les items
-      for (const row of itemsData.rows) {
+      for (const row of itemsData) {
         try {
           await tx.itemPersonnalise.create({
             data: {
@@ -149,27 +156,32 @@ export async function POST(request: NextRequest) {
               ordre: parseInt(row.ordre) || 0
             }
           })
-        } catch (e) { /* ignorer doublons */ }
+        } catch (e) {
+          console.log('Item ignoré:', row)
+        }
       }
 
       // Importer les réceptions
-      for (const row of receptionsData.rows) {
+      for (const row of receptionsData) {
         const oldId = parseInt(row.id)
         const date = parseDate(row.date_reception)
-        if (!date) continue
+        if (!date || isNaN(oldId)) {
+          console.log('Réception ignorée:', row)
+          continue
+        }
         
         const newReception = await tx.reception.create({
           data: {
-            code_fournisseur: row.code_fournisseur,
-            num_commande: row.num_commande,
-            num_type_produit: row.num_type_produit,
-            type_materiel: row.type_materiel as any,
+            code_fournisseur: row.code_fournisseur || '',
+            num_commande: row.num_commande || '',
+            num_type_produit: row.num_type_produit || '',
+            type_materiel: (row.type_materiel || 'Fil') as any,
             diametre_fil: row.diametre_fil ? parseFloat(row.diametre_fil) : null,
             longueur_feuillard: row.longueur_feuillard ? parseFloat(row.longueur_feuillard) : null,
             largeur_feuillard: row.largeur_feuillard ? parseFloat(row.largeur_feuillard) : null,
-            matiere: row.matiere,
-            durete: row.durete,
-            revetement: row.revetement,
+            matiere: row.matiere || '',
+            durete: row.durete || '',
+            revetement: row.revetement || '',
             date_reception: date
           }
         })
@@ -177,21 +189,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Importer les bobines
-      for (const row of bobinesData.rows) {
+      for (const row of bobinesData) {
         const oldId = parseInt(row.id)
         const oldReceptionId = parseInt(row.reception_id)
         const newReceptionId = receptionIdMap.get(oldReceptionId)
-        if (!newReceptionId) continue
+        
+        if (!newReceptionId || isNaN(oldId)) {
+          console.log('Bobine ignorée:', row)
+          continue
+        }
         
         const newBobine = await tx.bobine.create({
           data: {
             reception_id: newReceptionId,
-            code_bobine: row.code_bobine,
-            num_bobine: parseInt(row.num_bobine),
-            poids_initial: parseFloat(row.poids_initial),
-            poids_actuel: parseFloat(row.poids_actuel),
-            statut: row.statut as any,
-            lieu: row.lieu as any,
+            code_bobine: row.code_bobine || '',
+            num_bobine: parseInt(row.num_bobine) || 1,
+            poids_initial: parseFloat(row.poids_initial) || 0,
+            poids_actuel: parseFloat(row.poids_actuel) || 0,
+            statut: (row.statut || 'EN_STOCK') as any,
+            lieu: (row.lieu || 'STOCK_PRINCIPAL') as any,
             num_commande_fabrication: row.num_commande_fabrication || null
           }
         })
@@ -199,19 +215,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Importer les mouvements
-      for (const row of mouvementsData.rows) {
+      for (const row of mouvementsData) {
         const oldBobineId = parseInt(row.bobine_id)
         const newBobineId = bobineIdMap.get(oldBobineId)
-        if (!newBobineId) continue
-
         const date = parseDate(row.date_mouvement)
-        if (!date) continue
+        
+        if (!newBobineId || !date) {
+          console.log('Mouvement ignoré:', row)
+          continue
+        }
 
         await tx.mouvement.create({
           data: {
             bobine_id: newBobineId,
-            type_mouvement: row.type_mouvement as any,
-            poids_mouvement: parseFloat(row.poids_mouvement),
+            type_mouvement: (row.type_mouvement || 'ENTREE_FOURNISSEUR') as any,
+            poids_mouvement: parseFloat(row.poids_mouvement) || 0,
             n_commande_client: row.n_commande_client || null,
             client: row.client || null,
             texte_libre: row.texte_libre || null,
@@ -222,9 +240,17 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ message: 'Base restaurée avec succès' })
+    return NextResponse.json({ 
+      message: 'Base restaurée avec succès',
+      stats: {
+        receptions: receptionsData.length,
+        bobines: bobinesData.length,
+        mouvements: mouvementsData.length,
+        items: itemsData.length
+      }
+    })
   } catch (error) {
-    console.error(error)
+    console.error('Erreur import:', error)
     return NextResponse.json({ error: 'Erreur serveur: ' + (error as Error).message }, { status: 500 })
   }
 }
