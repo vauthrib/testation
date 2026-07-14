@@ -277,8 +277,8 @@ export default function Home() {
   const handleRemoveBobine = (index: number) => {
     if (!editingLot) return
     if (!confirm('Supprimer cette bobine ? Tous ses mouvements seront aussi supprimés.')) return
-    
-	const newBobines = editingLot.bobines.filter((_: any, i) => i !== index)
+
+	const newBobines = editingLot.bobines.filter((_: any, i: number) => i !== index)
     setEditingLot({
       ...editingLot,
       bobines: newBobines
