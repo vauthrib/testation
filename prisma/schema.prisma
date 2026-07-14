@@ -113,3 +113,15 @@ model ConnectionLog {
   
   @@map("connection_logs")
 }
+
+model User {
+  id              Int       @id @default(autoincrement())
+  login           String    @unique @db.VarChar(50)
+  password        String    @db.VarChar(50)
+  isSuper         Boolean   @default(false)
+  isAdmin         Boolean   @default(false)
+  actif           Boolean   @default(true)
+  date_creation   DateTime  @default(now())
+  
+  @@map("users")
+}

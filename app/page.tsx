@@ -43,7 +43,17 @@ type ReceptionData = {
   poids_bobines: number[]
 }
 
+type AutreSection = 'items' | 'lots' | 'users' | 'history' | 'backup' | 'reset'
+
 export default function Home() {
+  // Authentification
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [login, setLogin] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+
   const [bobines, setBobines] = useState<Bobine[]>([])
   const [etatResume, setEtatResume] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState<'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre'>('home')
@@ -70,8 +80,6 @@ export default function Home() {
   const [showEtiquette, setShowEtiquette] = useState(false)
   const [bobinesToPrint, setBobinesToPrint] = useState<Bobine[]>([])
 
-  const [codeAcces, setCodeAcces] = useState('')
-  const [autreAcces, setAutreAcces] = useState(false)
   const [moisConso, setMoisConso] = useState(3)
   const [commandeFilter, setCommandeFilter] = useState('')
 
@@ -90,6 +98,17 @@ export default function Home() {
   const [lots, setLots] = useState<any[]>([])
   const [editingLot, setEditingLot] = useState<any>(null)
 
+  // États pour la gestion utilisateurs
+  const [users, setUsers] = useState<any[]>([])
+  const [editingUser, setEditingUser] = useState<any>(null)
+  const [newUser, setNewUser] = useState({ login: '', password: '', isSuper: false, isAdmin: false })
+
+  // État pour l'historique
+  const [history, setHistory] = useState<any[]>([])
+
+  // Section active dans "Autre"
+  const [autreSection, setAutreSection] = useState<AutreSection>('items')
+
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
 
   const getBaseUrl = () => {
@@ -100,14 +119,70 @@ export default function Home() {
   }
 
   useEffect(() => {
-    chargerBobines()
-    chargerItems()
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear()
+    // Vérifier si authentifié aujourd'hui
+    const authData = localStorage.getItem('app_auth')
+    if (authData) {
+      const { user, date, isAdmin: admin } = JSON.parse(authData)
+      const today = new Date().toDateString()
+      if (date === today) {
+        setIsAuthenticated(true)
+        setCurrentUser(user)
+        setIsAdmin(admin)
+        chargerBobines()
+        chargerItems()
+        return
+      } else {
+        localStorage.removeItem('app_auth')
       }
     }
   }, [])
+
+  const handleAuth = async () => {
+    if (!login.trim() || !password.trim()) {
+      setAuthError('Veuillez remplir tous les champs')
+      return
+    }
+
+    try {
+      const userAgent = navigator.userAgent || 'Navigateur inconnu'
+      
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password, appareil: userAgent })
+      })
+
+      const data = await res.json()
+
+      if (data.valid) {
+        const today = new Date().toDateString()
+        localStorage.setItem('app_auth', JSON.stringify({ 
+          user: data.user, 
+          date: today,
+          isSuper: data.isSuper,
+          isAdmin: data.isAdmin
+        }))
+        setIsAuthenticated(true)
+        setCurrentUser(data.user)
+        setIsAdmin(data.isAdmin)
+        chargerBobines()
+        chargerItems()
+      } else {
+        setAuthError(data.error || 'Erreur de connexion')
+      }
+    } catch (err) {
+      setAuthError('Erreur de connexion au serveur')
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('app_auth')
+    setIsAuthenticated(false)
+    setCurrentUser('')
+    setIsAdmin(false)
+    setLogin('')
+    setPassword('')
+  }
 
   const chargerBobines = async () => {
     try {
@@ -149,6 +224,26 @@ export default function Home() {
       const res = await fetch('/api/lots')
       const data = await res.json()
       setLots(data)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const chargerUsers = async () => {
+    try {
+      const res = await fetch('/api/users')
+      const data = await res.json()
+      setUsers(data)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const chargerHistory = async () => {
+    try {
+      const res = await fetch('/api/auth/history?limit=100')
+      const data = await res.json()
+      setHistory(data)
     } catch (error) {
       console.error(error)
     }
@@ -220,6 +315,81 @@ export default function Home() {
     }
   }
 
+  // Gestion utilisateurs
+  const handleInitUsers = async () => {
+    if (!confirm('Créer les utilisateurs par défaut ? (Masrour, Khiara, Benamar, Benoit)')) return
+    
+    try {
+      const res = await fetch('/api/users/init', { method: 'POST' })
+      const data = await res.json()
+      alert(`✅ ${data.message}`)
+      chargerUsers()
+    } catch (error) {
+      alert('❌ Erreur')
+    }
+  }
+
+  const handleAddUser = async () => {
+    if (!newUser.login.trim() || !newUser.password.trim()) {
+      alert('Login et mot de passe requis')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      })
+
+      if (res.ok) {
+        setNewUser({ login: '', password: '', isSuper: false, isAdmin: false })
+        chargerUsers()
+        alert('✅ Utilisateur créé')
+      } else {
+        const error = await res.json()
+        alert(`❌ ${error.error}`)
+      }
+    } catch (error) {
+      alert('❌ Erreur')
+    }
+  }
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingUser)
+      })
+
+      if (res.ok) {
+        setEditingUser(null)
+        chargerUsers()
+        alert('✅ Utilisateur mis à jour')
+      } else {
+        const error = await res.json()
+        alert(`❌ ${error.error}`)
+      }
+    } catch (error) {
+      alert('❌ Erreur')
+    }
+  }
+
+  const handleDeleteUser = async (id: number, login: string) => {
+    if (!confirm(`Supprimer l'utilisateur ${login} ?`)) return
+
+    try {
+      await fetch(`/api/users?id=${id}`, { method: 'DELETE' })
+      chargerUsers()
+      alert('✅ Utilisateur supprimé')
+    } catch (error) {
+      alert('❌ Erreur')
+    }
+  }
+
   const handleEditLot = async (lotId: number) => {
     try {
       const res = await fetch(`/api/lots/${lotId}`)
@@ -277,8 +447,8 @@ export default function Home() {
   const handleRemoveBobine = (index: number) => {
     if (!editingLot) return
     if (!confirm('Supprimer cette bobine ? Tous ses mouvements seront aussi supprimés.')) return
-
-	const newBobines = editingLot.bobines.filter((_: any, i: number) => i !== index)
+    
+    const newBobines = editingLot.bobines.filter((_: any, i: number) => i !== index)
     setEditingLot({
       ...editingLot,
       bobines: newBobines
@@ -514,14 +684,6 @@ export default function Home() {
     setShowEtiquette(true)
   }
 
-  const handleCodeAcces = () => {
-    if (codeAcces === '1111') {
-      setAutreAcces(true)
-    } else {
-      alert('❌ Code incorrect')
-    }
-  }
-
   const exporterCSV = (type: 'stock' | 'consommation' | 'mouvements') => {
     let url = ''
     if (type === 'stock') url = '/api/export/stock'
@@ -550,6 +712,63 @@ export default function Home() {
       const diamB = matchB ? parseFloat(matchB[1]) : 9999
       return diamA - diamB
     })
+
+  // ============ PAGE DE LOGIN ============
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">📦</div>
+            <h1 className="text-2xl font-bold text-blue-900 mb-2">Gestion Stock Bobines</h1>
+            <p className="text-sm text-gray-600">Connectez-vous pour continuer</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
+              <input 
+                type="text" 
+                value={login} 
+                onChange={(e) => setLogin(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" 
+                placeholder="Votre login"
+                autoFocus 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none" 
+                placeholder="Votre mot de passe"
+              />
+            </div>
+
+            {authError && (
+              <p className="text-red-600 text-sm text-center">{authError}</p>
+            )}
+
+            <button 
+              onClick={handleAuth} 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            >
+              Se connecter
+            </button>
+          </div>
+
+          <div className="mt-6 text-center text-xs text-gray-500">
+            <p>Connexion autorisée de 7h30 à 18h00</p>
+            <p className="mt-1">Sauf pour les administrateurs</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ============ MODAL ÉDITION LOT ============
   if (showEditLot && editingLot) {
@@ -759,6 +978,17 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-4xl mx-auto">
+          {/* Header avec info utilisateur */}
+          <div className="bg-white rounded-xl shadow-lg p-4 mb-6 flex justify-between items-center">
+            <div>
+              <p className="text-xs text-gray-600">Connecté en tant que</p>
+              <p className="font-bold text-blue-900">{currentUser}</p>
+            </div>
+            <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+              🚪 Déconnexion
+            </button>
+          </div>
+
           <h1 className="text-4xl font-bold text-center text-blue-900 mb-12">📦 Gestion Stock Bobines</h1>
           
           <div className="grid grid-cols-2 gap-6">
@@ -785,7 +1015,15 @@ export default function Home() {
               className="bg-green-600 hover:bg-green-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               📊 État
             </button>
-            <button onClick={() => setCurrentPage('autre')}
+            <button onClick={() => {
+              if (!isAdmin) {
+                alert('⚠️ Accès réservé aux administrateurs')
+                return
+              }
+              setCurrentPage('autre')
+              chargerLots()
+              chargerUsers()
+            }}
               className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-12 rounded-xl text-2xl shadow-lg transition transform hover:scale-105">
               🔐 Autre
             </button>
@@ -984,10 +1222,6 @@ export default function Home() {
               <div>
                 <label className="block text-sm font-medium mb-1">Nombre de bobines</label>
                 <input name="nombre_bobines" type="number" min="1" max="99" defaultValue="1" required className="w-full px-4 py-2 border rounded-md" />
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
-                💡 Les listes sont gérables dans <strong>Autre → Gestion des items</strong>
               </div>
 
               <div className="flex gap-2">
@@ -1287,142 +1521,306 @@ export default function Home() {
     )
   }
 
-  // ============ PAGE AUTRE ============
+  // ============ PAGE AUTRE (avec navigation par onglets) ============
   if (currentPage === 'autre') {
-    if (!autreAcces) {
-      return (
-        <div className="min-h-screen bg-gray-50 p-6">
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
-            <h1 className="text-2xl font-bold mb-6">🔐 Accès protégé</h1>
-            <input type="password" value={codeAcces} onChange={(e) => setCodeAcces(e.target.value)} className="w-full px-4 py-2 border rounded-md mb-4" placeholder="Code à 4 chiffres" maxLength={4} />
-            <button onClick={handleCodeAcces} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 rounded-md">Valider</button>
-            <button onClick={() => setCurrentPage('home')} className="w-full mt-2 text-gray-600">Retour</button>
-          </div>
-        </div>
-      )
-    }
-
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">🔐 Administration</h1>
-            <button onClick={() => {
-              setCurrentPage('home')
-              setAutreAcces(false)
-              setCodeAcces('')
-            }} className="text-red-600 hover:text-red-800">✕</button>
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">🔐 Administration</h1>
+                <p className="text-sm text-gray-600 mt-1">Connecté en tant que <strong>{currentUser}</strong></p>
+              </div>
+              <button onClick={() => setCurrentPage('home')} className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                ← Retour
+              </button>
+            </div>
           </div>
 
-          {/* Gestion des items */}
-          <div className="mb-8 border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">📝 Gestion des items</h2>
-            <ItemsManager onItemsChange={chargerItems} />
-          </div>
+          {/* Navigation par onglets */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="flex border-b overflow-x-auto">
+              <button onClick={() => setAutreSection('items')}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'items' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                📝 Items
+              </button>
+              <button onClick={() => { setAutreSection('lots'); chargerLots() }}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'lots' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                📦 Lots
+              </button>
+              <button onClick={() => { setAutreSection('users'); chargerUsers() }}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'users' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                👥 Utilisateurs
+              </button>
+              <button onClick={() => { setAutreSection('history'); chargerHistory() }}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'history' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                📊 Historique
+              </button>
+              <button onClick={() => setAutreSection('backup')}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'backup' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                💾 Backup
+              </button>
+              <button onClick={() => setAutreSection('reset')}
+                className={`px-6 py-4 font-semibold whitespace-nowrap transition ${autreSection === 'reset' ? 'bg-red-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+                ⚠️ Reset
+              </button>
+            </div>
 
-          {/* Gestion des lots */}
-          <div className="mb-8 border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">📦 Gestion des lots</h2>
-            <button onClick={chargerLots} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md mb-4">
-              🔄 Charger les lots
-            </button>
-            
-            {lots.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Code Lot</th>
-                      <th className="px-3 py-2 text-left">Fournisseur</th>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-right">Nb bobines</th>
-                      <th className="px-3 py-2 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lots.map(lot => (
-                      <tr key={lot.id} className="border-b hover:bg-gray-50">
-                        <td className="px-3 py-2 font-mono font-semibold">
-                          {lot.code_fournisseur}{lot.num_commande}{lot.num_type_produit}
-                        </td>
-                        <td className="px-3 py-2">{lot.code_fournisseur}</td>
-                        <td className="px-3 py-2">{new Date(lot.date_reception).toLocaleDateString('fr-FR')}</td>
-                        <td className="px-3 py-2 text-right">{lot.bobines.length}</td>
-                        <td className="px-3 py-2 text-center">
-                          <button onClick={() => handleEditLot(lot.id)}
-                            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-xs">
-                            ✏️ Éditer
-                          </button>
-                        </td>
-                      </tr>
+            <div className="p-6">
+              {/* SECTION ITEMS */}
+              {autreSection === 'items' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📝 Gestion des items</h2>
+                  <ItemsManager onItemsChange={chargerItems} />
+                </div>
+              )}
+
+              {/* SECTION LOTS */}
+              {autreSection === 'lots' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📦 Gestion des lots</h2>
+                  {lots.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Aucun lot trouvé. Cliquez sur "Charger" pour actualiser.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Code Lot</th>
+                            <th className="px-3 py-2 text-left">Fournisseur</th>
+                            <th className="px-3 py-2 text-left">Date</th>
+                            <th className="px-3 py-2 text-right">Nb bobines</th>
+                            <th className="px-3 py-2 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lots.map(lot => (
+                            <tr key={lot.id} className="border-b hover:bg-gray-50">
+                              <td className="px-3 py-2 font-mono font-semibold">
+                                {lot.code_fournisseur}{lot.num_commande}{lot.num_type_produit}
+                              </td>
+                              <td className="px-3 py-2">{lot.code_fournisseur}</td>
+                              <td className="px-3 py-2">{new Date(lot.date_reception).toLocaleDateString('fr-FR')}</td>
+                              <td className="px-3 py-2 text-right">{lot.bobines.length}</td>
+                              <td className="px-3 py-2 text-center">
+                                <button onClick={() => handleEditLot(lot.id)}
+                                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-xs">
+                                  ✏️ Éditer
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SECTION UTILISATEURS */}
+              {autreSection === 'users' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">👥 Gestion des utilisateurs</h2>
+                  
+                  {/* Initialisation */}
+                  {users.length === 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                      <p className="text-sm text-yellow-800 mb-2">Aucun utilisateur configuré. Créez les utilisateurs par défaut :</p>
+                      <button onClick={handleInitUsers} className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm">
+                        🔄 Créer utilisateurs par défaut
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Ajout utilisateur */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                    <h3 className="font-semibold mb-3">➕ Ajouter un utilisateur</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      <input type="text" placeholder="Login" value={newUser.login}
+                        onChange={(e) => setNewUser({ ...newUser, login: e.target.value })}
+                        className="px-3 py-2 border rounded-md" />
+                      <input type="text" placeholder="Mot de passe" value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        className="px-3 py-2 border rounded-md" />
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={newUser.isSuper}
+                          onChange={(e) => setNewUser({ ...newUser, isSuper: e.target.checked })}
+                          className="w-4 h-4" />
+                        <label className="text-sm">Super</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={newUser.isAdmin}
+                          onChange={(e) => setNewUser({ ...newUser, isAdmin: e.target.checked })}
+                          className="w-4 h-4" />
+                        <label className="text-sm">Admin</label>
+                      </div>
+                    </div>
+                    <button onClick={handleAddUser} className="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm">
+                      ✓ Ajouter
+                    </button>
+                  </div>
+
+                  {/* Liste utilisateurs */}
+                  <div className="space-y-2">
+                    {users.map(user => (
+                      <div key={user.id} className="border rounded-md p-3 bg-gray-50">
+                        {editingUser?.id === user.id ? (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-4 gap-2">
+                              <input type="text" value={editingUser.login}
+                                onChange={(e) => setEditingUser({ ...editingUser, login: e.target.value })}
+                                className="px-3 py-2 border rounded-md" />
+                              <input type="text" value={editingUser.password}
+                                onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                                className="px-3 py-2 border rounded-md" placeholder="Nouveau mot de passe" />
+                              <div className="flex items-center gap-2">
+                                <input type="checkbox" checked={editingUser.isSuper}
+                                  onChange={(e) => setEditingUser({ ...editingUser, isSuper: e.target.checked })}
+                                  className="w-4 h-4" />
+                                <label className="text-sm">Super</label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input type="checkbox" checked={editingUser.isAdmin}
+                                  onChange={(e) => setEditingUser({ ...editingUser, isAdmin: e.target.checked })}
+                                  className="w-4 h-4" />
+                                <label className="text-sm">Admin</label>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={handleUpdateUser} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">✓ Sauvegarder</button>
+                              <button onClick={() => setEditingUser(null)} className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">✕ Annuler</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="font-semibold">{user.login}</span>
+                              <span className="ml-3 text-xs text-gray-500">Mot de passe : {user.password}</span>
+                              {user.isSuper && <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">Super</span>}
+                              {user.isAdmin && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Admin</span>}
+                              {!user.actif && <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">Désactivé</span>}
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => setEditingUser(user)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">✏️</button>
+                              <button onClick={() => handleDeleteUser(user.id, user.login)}
+                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">🗑️</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                  </div>
+                </div>
+              )}
 
-          {/* Code d'accès mobile */}
-          <div className="mb-8 border-b pb-6">
-            <h2 className="text-lg font-semibold mb-4">🔐 Code d'accès mobile</h2>
-            <p className="text-sm text-gray-600 mb-3">Ce code est utilisé pour accéder aux infos des bobines depuis un smartphone (via QR code).</p>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm text-yellow-800"><strong>Code actuel :</strong> {process.env.NEXT_PUBLIC_ACCESS_CODE || '1234'}</p>
-              <p className="text-xs text-yellow-700 mt-2">Pour modifier ce code, ajoutez la variable d'environnement <code>ACCESS_CODE</code> dans Vercel</p>
+              {/* SECTION HISTORIQUE */}
+              {autreSection === 'history' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">📊 Historique des connexions</h2>
+                  {history.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">Aucune connexion enregistrée</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Date</th>
+                            <th className="px-3 py-2 text-left">Utilisateur</th>
+                            <th className="px-3 py-2 text-left">IP</th>
+                            <th className="px-3 py-2 text-left">Appareil</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.map(log => (
+                            <tr key={log.id} className="border-b hover:bg-gray-50">
+                              <td className="px-3 py-2 text-xs">
+                                {new Date(log.date_connexion).toLocaleDateString('fr-FR')}<br/>
+                                {new Date(log.date_connexion).toLocaleTimeString('fr-FR')}
+                              </td>
+                              <td className="px-3 py-2 font-semibold">{log.utilisateur}</td>
+                              <td className="px-3 py-2 text-xs text-gray-600">{log.ip_address || '-'}</td>
+                              <td className="px-3 py-2 text-xs text-gray-600 max-w-xs truncate">{log.appareil}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SECTION BACKUP */}
+              {autreSection === 'backup' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4">💾 Backup complet de la base</h2>
+                  
+                  <div className="mb-4">
+                    <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-semibold">
+                      📥 Exporter toute la base (1 fichier CSV)
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2">Télécharge 1 fichier CSV contenant : réceptions, bobines, mouvements et items</p>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                    <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
+                    <p className="text-xs text-gray-600 mb-3">Sélectionne le fichier CSV de backup :</p>
+                    <div className="flex items-center gap-2">
+                      <input type="file" accept=".csv" onChange={(e) => setBackupFile(e.target.files?.[0] || null)} className="flex-1 text-sm" />
+                    </div>
+                    {backupFile && (<p className="text-xs text-green-700 mt-2">✅ Fichier sélectionné : {backupFile.name}</p>)}
+                    <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">📤 Restaurer depuis le CSV</button>
+                    <p className="text-xs text-red-600 mt-2">⚠️ L'import écrase TOUTES les données actuelles.</p>
+                  </div>
+
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h3 className="text-sm font-semibold mb-2">📊 Exports CSV partiels</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm">💾 Stock actuel</button>
+                      <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">📥 Tous mouvements</button>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 bg-orange-50 border border-orange-200 rounded-md p-4">
+                    <h3 className="text-sm font-semibold mb-2">📈 Stats par commande</h3>
+                    <div className="flex gap-2">
+                      <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)} className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
+                      <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Exporter</button>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 bg-purple-50 border border-purple-200 rounded-md p-4">
+                    <h3 className="text-sm font-semibold mb-2">📉 Consommation</h3>
+                    <div className="flex gap-2 items-center">
+                      <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)} min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
+                      <span>mois</span>
+                      <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">📈 Exporter</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION RESET */}
+              {autreSection === 'reset' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-4 text-red-900">⚠️ Zone dangereuse</h2>
+                  <div className="bg-red-50 border border-red-300 rounded-md p-6">
+                    <p className="text-sm text-red-800 mb-4">
+                      Cette action va supprimer <strong>TOUTES</strong> les données de la base : réceptions, bobines, mouvements et items.
+                      Les utilisateurs et l'historique des connexions seront conservés.
+                    </p>
+                    <p className="text-sm text-red-800 mb-4">
+                      <strong>Conseil :</strong> Faites un backup avant de réinitialiser.
+                    </p>
+                    <button onClick={handleReset} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-md">
+                      ⚠️ Réinitialiser la base de données
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Exports CSV */}
-          <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">📊 Exports CSV</h2>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => exporterCSV('stock')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">💾 Stock actuel</button>
-              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">📥 Tous mouvements</button>
-            </div>
-          </div>
-
-          {/* Stats par commande */}
-          <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">📈 Stats par commande</h2>
-            <div className="flex gap-2">
-              <input type="text" value={commandeFilter} onChange={(e) => setCommandeFilter(e.target.value)} className="flex-1 px-4 py-2 border rounded-md" placeholder="N° commande" />
-              <button onClick={() => exporterCSV('mouvements')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Exporter</button>
-            </div>
-          </div>
-
-          {/* Consommation */}
-          <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">📉 Consommation</h2>
-            <div className="flex gap-2 items-center">
-              <input type="number" value={moisConso} onChange={(e) => setMoisConso(parseInt(e.target.value) || 1)} min="1" max="120" className="w-20 px-3 py-2 border rounded-md" />
-              <span>mois</span>
-              <button onClick={() => exporterCSV('consommation')} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md">📈 Exporter</button>
-            </div>
-          </div>
-
-          {/* Backup CSV unifié */}
-          <div className="border-b pb-4 mb-4">
-            <h2 className="text-lg font-semibold mb-2">💾 Backup complet de la base</h2>
-            <div className="mb-4">
-              <button onClick={handleExportBase} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">📥 Exporter toute la base (1 fichier CSV)</button>
-              <p className="text-xs text-gray-500 mt-2">Télécharge 1 fichier CSV contenant : réceptions, bobines, mouvements et items</p>
-            </div>
-
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-              <h3 className="text-sm font-semibold mb-3">📤 Importer une base (CSV)</h3>
-              <p className="text-xs text-gray-600 mb-3">Sélectionne le fichier CSV de backup :</p>
-              <div className="flex items-center gap-2">
-                <input type="file" accept=".csv" onChange={(e) => setBackupFile(e.target.files?.[0] || null)} className="flex-1 text-sm" />
-              </div>
-              {backupFile && (<p className="text-xs text-green-700 mt-2">✅ Fichier sélectionné : {backupFile.name}</p>)}
-              <button onClick={handleImportBase} className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">📤 Restaurer depuis le CSV</button>
-              <p className="text-xs text-red-600 mt-2">⚠️ L'import écrase TOUTES les données actuelles.</p>
-            </div>
-          </div>
-
-          {/* Reset */}
-          <div className="pt-4">
-            <button onClick={handleReset} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-md">⚠️ Réinitialiser base de données</button>
           </div>
         </div>
       </div>

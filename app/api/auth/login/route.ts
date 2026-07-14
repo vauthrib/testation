@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-const USERS = [
-  { login: 'Masrour', password: '7391', isSuper: false },
-  { login: 'Khiara', password: '3719', isSuper: false },
-  { login: 'Benamar', password: '9173', isSuper: false },
-  { login: 'Benoit', password: '33142580', isSuper: true }
-]
-
 const START_HOUR = 7
 const START_MINUTE = 30
 const END_HOUR = 18
@@ -17,20 +10,23 @@ export async function POST(request: NextRequest) {
   try {
     const { login, password, appareil } = await request.json()
 
-    // Vérifier les credentials
-    const user = USERS.find(u => u.login === login && u.password === password)
-    
-    if (!user) {
+    // Récupérer l'utilisateur depuis la DB
+    const user = await prisma.user.findUnique({
+      where: { login }
+    })
+
+    if (!user || user.password !== password) {
       return NextResponse.json({ valid: false, error: 'Login ou mot de passe incorrect' }, { status: 401 })
     }
 
-    // Vérifier l'heure (sauf pour le super code)
+    if (!user.actif) {
+      return NextResponse.json({ valid: false, error: 'Compte désactivé' }, { status: 403 })
+    }
+
+    // Vérifier l'heure (sauf pour les super users)
     if (!user.isSuper) {
       const now = new Date()
-      const currentHour = now.getHours()
-      const currentMinute = now.getMinutes()
-      const currentTime = currentHour * 60 + currentMinute
-      
+      const currentTime = now.getHours() * 60 + now.getMinutes()
       const startTime = START_HOUR * 60 + START_MINUTE
       const endTime = END_HOUR * 60 + END_MINUTE
 
@@ -46,7 +42,6 @@ export async function POST(request: NextRequest) {
     try {
       const count = await prisma.connectionLog.count()
       if (count >= 1000) {
-        // Supprimer les 100 plus anciennes
         const oldest = await prisma.connectionLog.findMany({
           orderBy: { date_connexion: 'asc' },
           take: 100
@@ -70,7 +65,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       valid: true, 
       user: user.login,
-      isSuper: user.isSuper
+      isSuper: user.isSuper,
+      isAdmin: user.isAdmin
     })
   } catch (error) {
     console.error(error)
