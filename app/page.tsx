@@ -329,8 +329,10 @@ export default function Home() {
   const handleRetourUsine = async () => {
     if (!selectedBobine) return
     if (selectedBobine.lieu !== 'USINE') { showToast("Pas en usine", 'warning'); return }
+    const p = parseFloat(poidsRestant)
+    if (isNaN(p) || p < 0) { showToast('Poids invalide (0 = tout consomme)', 'warning'); return }
     try {
-      const res = await fetch('/api/mouvements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code_bobine: selectedBobine.code_bobine, type_mouvement: 'RETOUR_USINE', poids_mouvement: parseFloat(poidsRestant), lieu_destination: 'STOCK_PRINCIPAL' }) })
+      const res = await fetch('/api/mouvements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code_bobine: selectedBobine.code_bobine, type_mouvement: 'RETOUR_USINE', poids_mouvement: p, lieu_destination: 'STOCK_PRINCIPAL' }) })
       if (res.ok) { showToast('Retour stock principal', 'success'); setCurrentPage('home'); setSelectedBobine(null); setPoidsRestant(''); chargerBobines() }
       else { const e = await res.json(); showToast(e.error, 'error') }
     } catch { showToast('Erreur', 'error') }
@@ -740,15 +742,27 @@ export default function Home() {
               <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider mb-4">Par lot</h3>
               <div className="space-y-2">
                 {etatFiltre.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-2xl">
-                    <div>
-                      <p className="font-semibold text-sm">{item.dimension}</p>
-                      <p className="text-xs text-gray-500">{item.matiere} | {item.durete} | {item.revetement}</p>
-                      <p className="text-xs text-gray-400">{item.fournisseur} Cmd {item.commande}</p>
+                  <div key={idx} className="py-3 px-4 bg-gray-50 rounded-2xl">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm">{item.dimension}</p>
+                        <p className="text-xs text-gray-500">{item.matiere} | {item.durete} | {item.revetement}</p>
+                        <p className="text-xs text-gray-400">{item.fournisseur} Cmd {item.commande}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <p className="font-bold text-gray-900">{item.poids_stock} kg</p>
+                        <p className="text-xs text-gray-500">{item.nb_bobines} bobine(s)</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{item.total_kg} kg</p>
-                      <p className="text-xs text-gray-500">{item.nb_bobines} bobine(s)</p>
+                    <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                      <div className="bg-blue-100 rounded-xl py-1.5">
+                        <p className="font-bold text-blue-800">{item.poids_stock} kg</p>
+                        <p className="text-[10px] text-blue-600">En Stock</p>
+                      </div>
+                      <div className="bg-purple-100 rounded-xl py-1.5">
+                        <p className="font-bold text-purple-800">{item.poids_consomme} kg</p>
+                        <p className="text-[10px] text-purple-600">Consomme</p>
+                      </div>
                     </div>
                   </div>
                 ))}

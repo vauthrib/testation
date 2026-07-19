@@ -170,7 +170,7 @@ export default function BobinePage() {
 
   const handleVersStock = async () => {
     const p = parseFloat(poidsRestant); const pi = parseFloat(bobine?.poids_initial || '0')
-    if (isNaN(p) || p <= 0) { showToast('Poids invalide', 'warning'); return }
+    if (isNaN(p) || p < 0) { showToast('Poids invalide', 'warning'); return }
     if (p >= pi) { showToast(`Poids < ${pi} kg requis`, 'warning'); return }
     setActionLoading(true)
     try {
@@ -360,6 +360,34 @@ export default function BobinePage() {
           )}
         </div>
 
+        {/* ===== INFOS BOBINE (fond bleu) ===== */}
+        {!showAction && (
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-4 mb-4 shadow-lg" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+            <div className="grid grid-cols-5 gap-2 text-center text-white">
+              <div className="bg-white/20 rounded-xl py-2">
+                <p className="text-[9px] uppercase tracking-wider opacity-80">{r.type_materiel === 'Fil' ? 'Diam' : 'Dim'}</p>
+                <p className="font-bold text-sm">{dimension}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl py-2">
+                <p className="text-[9px] uppercase tracking-wider opacity-80">Poids</p>
+                <p className="font-bold text-sm">{bobine.poids_actuel} kg</p>
+              </div>
+              <div className="bg-white/20 rounded-xl py-2">
+                <p className="text-[9px] uppercase tracking-wider opacity-80">Matiere</p>
+                <p className="font-bold text-sm truncate">{r.matiere}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl py-2">
+                <p className="text-[9px] uppercase tracking-wider opacity-80">Durete</p>
+                <p className="font-bold text-sm">{r.durete}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl py-2">
+                <p className="text-[9px] uppercase tracking-wider opacity-80">Revet.</p>
+                <p className="font-bold text-sm truncate">{r.revetement}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ===== ACTIONS (formulaires) ===== */}
 
         {/* Action: Vers Usine */}
@@ -408,7 +436,7 @@ export default function BobinePage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Poids restant (kg)</label>
                 <input type="number" step="0.01" value={poidsRestant} onChange={e => setPoidsRestant(e.target.value)}
                   className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-cyan-500 focus:bg-white focus:outline-none transition-all text-base" placeholder="15.5" autoFocus />
-                <p className="text-xs text-gray-500 mt-1">Doit etre &lt; {bobine.poids_initial} kg</p>
+                <p className="text-xs text-gray-500 mt-1">Doit etre &lt; {bobine.poids_initial} kg · 0 = tout consomme</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setShowAction(null)} className="flex-1 bg-gray-200 hover:bg-gray-300 font-semibold py-3.5 rounded-2xl transition-colors">Annuler</button>

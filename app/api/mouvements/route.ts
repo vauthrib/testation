@@ -28,9 +28,11 @@ export async function POST(request: NextRequest) {
       // Retour d'usine avec nouveau poids
       nouveauPoids = poidsMouvement
       nouveauLieu = data.lieu_destination || 'STOCK_PRINCIPAL'
-      
+
+      // Si poids=0, tout a ete consomme par la commande
       if (nouveauPoids <= 0) {
         nouveauStatut = 'VIDE'
+        nouveauLieu = 'DECHET'
       } else if (nouveauPoids < parseFloat(bobine.poids_initial.toString())) {
         nouveauStatut = 'PARTIELLE'
       } else {
