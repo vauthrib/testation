@@ -148,11 +148,11 @@ export function MiniStat({ value, label, color }: { value: number; label: string
 }
 
 // ============= INPUT =============
-export function Input({ label, type = 'text', step, value, onChange, maxLength, className = '', placeholder }: { label: string; type?: string; step?: string; value: string; onChange: (v: string) => void; maxLength?: number; className?: string; placeholder?: string }) {
+export function Input({ label, type = 'text', step, value, onChange, maxLength, className = '', placeholder, name }: { label: string; type?: string; step?: string; value: string; onChange: (v: string) => void; maxLength?: number; className?: string; placeholder?: string; name?: string }) {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input type={type} step={step} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength}
+      <input type={type} step={step} value={value} onChange={e => onChange(e.target.value)} maxLength={maxLength} name={name}
         className={`w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-gray-900 focus:bg-white focus:outline-none transition-all text-sm ${className}`}
         placeholder={placeholder} />
     </div>
@@ -160,11 +160,11 @@ export function Input({ label, type = 'text', step, value, onChange, maxLength, 
 }
 
 // ============= SELECT =============
-export function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+export function Select({ label, value, onChange, options, name }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; name?: string }) {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <select value={value} onChange={e => onChange(e.target.value)}
+      <select value={value} onChange={e => onChange(e.target.value)} name={name}
         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-gray-900 focus:bg-white focus:outline-none transition-all text-sm">
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>

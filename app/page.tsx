@@ -460,9 +460,9 @@ export default function Home() {
         {wizardStep === 1 && (
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-emerald-100" style={{ animation: 'slideUp 0.3s ease-out' }}>
             <form onSubmit={handleEtape1} className="space-y-4">
-              <Input label="Code Fournisseur" value={receptionData.code_fournisseur} onChange={v => setReceptionData({ ...receptionData, code_fournisseur: v.toUpperCase() })} maxLength={4} placeholder="Ex: A001" />
-              <Input label="N° Commande (2 chiffres)" value={receptionData.num_commande} onChange={v => setReceptionData({ ...receptionData, num_commande: v })} maxLength={2} placeholder="Ex: 01" />
-              <Input label="N° Type Produit (2 chiffres)" value={receptionData.num_type_produit} onChange={v => setReceptionData({ ...receptionData, num_type_produit: v })} maxLength={2} placeholder="Ex: 01" />
+              <Input label="Code Fournisseur" name="code_fournisseur" value={receptionData.code_fournisseur} onChange={v => setReceptionData({ ...receptionData, code_fournisseur: v.toUpperCase() })} maxLength={4} placeholder="Ex: A001" />
+              <Input label="N° Commande (2 chiffres)" name="num_commande" value={receptionData.num_commande} onChange={v => setReceptionData({ ...receptionData, num_commande: v })} maxLength={2} placeholder="Ex: 01" />
+              <Input label="N° Type Produit (2 chiffres)" name="num_type_produit" value={receptionData.num_type_produit} onChange={v => setReceptionData({ ...receptionData, num_type_produit: v })} maxLength={2} placeholder="Ex: 01" />
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98]">Suivant</button>
             </form>
           </div>
@@ -471,23 +471,23 @@ export default function Home() {
         {wizardStep === 2 && (
           <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-emerald-100" style={{ animation: 'slideUp 0.3s ease-out' }}>
             <form onSubmit={handleEtape2} className="space-y-4">
-              <Select label="Type de materiel" value={receptionData.type_materiel} onChange={v => setReceptionData({ ...receptionData, type_materiel: v })} options={[{ value: 'Fil', label: 'Fil' }, { value: 'Feuillard', label: 'Feuillard' }]} />
+              <Select label="Type de materiel" name="type_materiel" value={receptionData.type_materiel} onChange={v => setReceptionData({ ...receptionData, type_materiel: v })} options={[{ value: 'Fil', label: 'Fil' }, { value: 'Feuillard', label: 'Feuillard' }]} />
               {receptionData.type_materiel === 'Fil' ? (
-                <Input label="Diametre (mm)" type="number" step="0.01" value={receptionData.diametre_fil || ''} onChange={v => setReceptionData({ ...receptionData, diametre_fil: v })} placeholder="Ex: 2.50" />
+                <Input label="Diametre (mm)" name="diametre_fil" type="number" step="0.01" value={receptionData.diametre_fil || ''} onChange={v => setReceptionData({ ...receptionData, diametre_fil: v })} placeholder="Ex: 2.50" />
               ) : (
                 <>
-                  <Input label="Largeur (mm)" type="number" step="0.01" value={receptionData.largeur_feuillard || ''} onChange={v => setReceptionData({ ...receptionData, largeur_feuillard: v })} placeholder="Ex: 30" />
-                  <Input label="Longueur (mm)" type="number" step="0.01" value={receptionData.longueur_feuillard || ''} onChange={v => setReceptionData({ ...receptionData, longueur_feuillard: v })} placeholder="Ex: 1000" />
+                  <Input label="Largeur (mm)" name="largeur_feuillard" type="number" step="0.01" value={receptionData.largeur_feuillard || ''} onChange={v => setReceptionData({ ...receptionData, largeur_feuillard: v })} placeholder="Ex: 30" />
+                  <Input label="Longueur (mm)" name="longueur_feuillard" type="number" step="0.01" value={receptionData.longueur_feuillard || ''} onChange={v => setReceptionData({ ...receptionData, longueur_feuillard: v })} placeholder="Ex: 1000" />
                 </>
               )}
-              <Select label="Matiere" value={receptionData.matiere} onChange={v => setReceptionData({ ...receptionData, matiere: v })}
+              <Select label="Matiere" name="matiere" value={receptionData.matiere} onChange={v => setReceptionData({ ...receptionData, matiere: v })}
                 options={itemsMatiere.map(i => ({ value: i.nom, label: i.nom }))} />
-              <Select label="Durete" value={receptionData.durete} onChange={v => setReceptionData({ ...receptionData, durete: v })}
+              <Select label="Durete" name="durete" value={receptionData.durete} onChange={v => setReceptionData({ ...receptionData, durete: v })}
                 options={itemsDurete.map(i => ({ value: i.nom, label: i.nom }))} />
-              <Select label="Revetement" value={receptionData.revetement} onChange={v => setReceptionData({ ...receptionData, revetement: v })}
+              <Select label="Revetement" name="revetement" value={receptionData.revetement} onChange={v => setReceptionData({ ...receptionData, revetement: v })}
                 options={itemsRev.map(i => ({ value: i.nom, label: i.nom }))} />
-              <Input label="Date reception" type="date" value={receptionData.date_reception} onChange={v => setReceptionData({ ...receptionData, date_reception: v })} />
-              <Input label="Nombre de bobines" type="number" value={String(receptionData.nombre_bobines)} onChange={v => setReceptionData({ ...receptionData, nombre_bobines: parseInt(v) || 1 })} />
+              <Input label="Date reception" name="date_reception" type="date" value={receptionData.date_reception} onChange={v => setReceptionData({ ...receptionData, date_reception: v })} />
+              <Input label="Nombre de bobines" name="nombre_bobines" type="number" value={String(receptionData.nombre_bobines)} onChange={v => setReceptionData({ ...receptionData, nombre_bobines: parseInt(v) || 1 })} />
               <div className="flex gap-3">
                 <button type="button" onClick={() => setWizardStep(1)} className="flex-1 bg-gray-200 hover:bg-gray-300 font-semibold py-3.5 rounded-2xl transition-colors">Retour</button>
                 <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98]">Suivant</button>
