@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "npx prisma generate"
+    "prebuild": "npx prisma generate --no-engine",
+    "postinstall": "npx prisma generate --no-engine"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
