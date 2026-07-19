@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contestant {
+  id        Int      @id @default(autoincrement())
+  pseudo    String   @unique
+  age       Int
+  prenom    String
+  createdAt DateTime @default(now())
+
+  ratings Rating[]
+}
+
+model Juror {
+  id        Int      @id @default(autoincrement())
+  pseudo    String   @unique
+  type      String // DONNATEUR, FAMILY, CURIEUX
+  coeff     Int      @default(2) // 6=donnateur, 4=family, 2=curieux
+  createdAt DateTime @default(now())
+
+  ratings Rating[]
+}
+
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  ratings Rating[]
+}
+
+model Rating {
+  id           Int      @id @default(autoincrement())
+  contestantId Int
+  jurorId      Int
+  categoryId   Int
+  value        Int // 1-9
+  createdAt    DateTime @default(now())
+
+  contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  juror      Juror      @relation(fields: [jurorId], references: [id], onDelete: Cascade)
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([contestantId, jurorId, categoryId])
+}
