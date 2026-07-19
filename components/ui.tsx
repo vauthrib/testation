@@ -122,7 +122,8 @@ export function ActionButton({ icon, label, desc, color, onClick }: { icon: stri
     cyan: 'bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800 shadow-cyan-600/25',
     red: 'bg-red-600 hover:bg-red-700 active:bg-red-800 shadow-red-600/25',
     blue: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-blue-600/25',
-    gray: 'bg-gray-700 hover:bg-gray-800 active:bg-gray-900 shadow-gray-700/25'
+    gray: 'bg-gray-700 hover:bg-gray-800 active:bg-gray-900 shadow-gray-700/25',
+    orange: 'bg-orange-600 hover:bg-orange-700 active:bg-orange-800 shadow-orange-600/25'
   }
   return (
     <button onClick={onClick} className={`w-full ${cls[color] || cls.blue} text-white rounded-2xl p-5 text-left transition-all shadow-lg active:scale-[0.98]`}>

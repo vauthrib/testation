@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         bobine_id: bobine.id,
         type_mouvement: data.type_mouvement,
         poids_mouvement: poidsMouvement,
-        n_commande_client: data.n_commande_client || null,
+        n_commande_client: data.n_commande_client || data.num_commande_fabrication || null,
         client: data.client || null,
         texte_libre: data.texte_libre || null,
         lieu_destination: nouveauLieu

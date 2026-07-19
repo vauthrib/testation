@@ -38,5 +38,41 @@ export type ReceptionData = {
 }
 
 export type AutreSection = 'items' | 'lots' | 'users' | 'history' | 'backup' | 'reset'
-export type PageKey = 'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre'
+export type PageKey = 'home' | 'arrivage' | 'usine' | 'retour_usine' | 'retour' | 'etat' | 'autre' | 'consommation'
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
+
+export type ConsommationParCommande = {
+  commande: string
+  nb_mouvements: number
+  nb_bobines: number
+  poids_total: number
+  poids_usine: number
+  poids_dechet: number
+  poids_retour: number
+  matieres: string[]
+  diametres: string[]
+  duretes: string[]
+}
+
+export type ConsommationParDiametre = {
+  diametre: string
+  nb_mouvements: number
+  poids_total: number
+  poids_usine: number
+  poids_dechet: number
+}
+
+export type ConsommationParDurete = {
+  durete: string
+  nb_mouvements: number
+  poids_total: number
+  poids_usine: number
+  poids_dechet: number
+}
+
+export type ConsommationData = {
+  total_mouvements: number
+  par_commande: ConsommationParCommande[]
+  par_diametre: ConsommationParDiametre[]
+  par_durete: ConsommationParDurete[]
+}
