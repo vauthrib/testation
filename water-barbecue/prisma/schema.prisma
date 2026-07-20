@@ -11,6 +11,7 @@ datasource db {
 model Contestant {
   id        Int      @id @default(autoincrement())
   pseudo    String   @unique
+  password  String   @default("")
   age       Int
   prenom    String
   createdAt DateTime @default(now())
@@ -21,9 +22,12 @@ model Contestant {
 model Juror {
   id        Int      @id @default(autoincrement())
   pseudo    String   @unique
+  email     String   @default("")
   type      String   // DONNATEUR, FAMILY, CURIEUX
   coeff     Int      @default(2) // 6=donnateur, 4=family, 2=curieux
-  createdAt DateTime @default(now())
+  validated       Boolean  @default(false)
+  validationsCount Int     @default(0)
+  createdAt       DateTime @default(now())
 
   ratings Rating[]
 }
@@ -41,6 +45,7 @@ model Rating {
   jurorId       Int
   categoryId    Int
   value         Int      // 1-9
+  photoUrl      String?  // photo optionnelle pour booster le vote
   createdAt     DateTime @default(now())
 
   contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)

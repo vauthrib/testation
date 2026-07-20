@@ -65,6 +65,21 @@ export default function HomePage() {
         </a>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <a
+          href={baseUrl ? `/contestant/login` : "#"}
+          className="bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold py-3 px-4 rounded-2xl text-center hover:from-blue-400 hover:to-blue-600 transition-all active:scale-[0.98] text-sm"
+        >
+          🏄 Espace Concurrent
+        </a>
+        <a
+          href={baseUrl ? `/admin` : "#"}
+          className="bg-white/5 border border-red-500/20 text-red-300 font-bold py-3 px-4 rounded-2xl text-center hover:bg-white/10 transition-all active:scale-[0.98] text-sm"
+        >
+          🔧 Administration
+        </a>
+      </div>
+
       <p className="text-blue-300/30 text-xs text-center mt-4">
         Water-Barbecue 2026 - Tous droits réservés
       </p>

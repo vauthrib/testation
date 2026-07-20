@@ -1251,6 +1251,7 @@ export namespace Prisma {
   export type ContestantMinAggregateOutputType = {
     id: number | null
     pseudo: string | null
+    password: string | null
     age: number | null
     prenom: string | null
     createdAt: Date | null
@@ -1259,6 +1260,7 @@ export namespace Prisma {
   export type ContestantMaxAggregateOutputType = {
     id: number | null
     pseudo: string | null
+    password: string | null
     age: number | null
     prenom: string | null
     createdAt: Date | null
@@ -1267,6 +1269,7 @@ export namespace Prisma {
   export type ContestantCountAggregateOutputType = {
     id: number
     pseudo: number
+    password: number
     age: number
     prenom: number
     createdAt: number
@@ -1287,6 +1290,7 @@ export namespace Prisma {
   export type ContestantMinAggregateInputType = {
     id?: true
     pseudo?: true
+    password?: true
     age?: true
     prenom?: true
     createdAt?: true
@@ -1295,6 +1299,7 @@ export namespace Prisma {
   export type ContestantMaxAggregateInputType = {
     id?: true
     pseudo?: true
+    password?: true
     age?: true
     prenom?: true
     createdAt?: true
@@ -1303,6 +1308,7 @@ export namespace Prisma {
   export type ContestantCountAggregateInputType = {
     id?: true
     pseudo?: true
+    password?: true
     age?: true
     prenom?: true
     createdAt?: true
@@ -1398,6 +1404,7 @@ export namespace Prisma {
   export type ContestantGroupByOutputType = {
     id: number
     pseudo: string
+    password: string
     age: number
     prenom: string
     createdAt: Date
@@ -1425,6 +1432,7 @@ export namespace Prisma {
   export type ContestantSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    password?: boolean
     age?: boolean
     prenom?: boolean
     createdAt?: boolean
@@ -1435,6 +1443,7 @@ export namespace Prisma {
   export type ContestantSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    password?: boolean
     age?: boolean
     prenom?: boolean
     createdAt?: boolean
@@ -1443,6 +1452,7 @@ export namespace Prisma {
   export type ContestantSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    password?: boolean
     age?: boolean
     prenom?: boolean
     createdAt?: boolean
@@ -1451,12 +1461,13 @@ export namespace Prisma {
   export type ContestantSelectScalar = {
     id?: boolean
     pseudo?: boolean
+    password?: boolean
     age?: boolean
     prenom?: boolean
     createdAt?: boolean
   }
 
-  export type ContestantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "age" | "prenom" | "createdAt", ExtArgs["result"]["contestant"]>
+  export type ContestantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "password" | "age" | "prenom" | "createdAt", ExtArgs["result"]["contestant"]>
   export type ContestantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ratings?: boolean | Contestant$ratingsArgs<ExtArgs>
     _count?: boolean | ContestantCountOutputTypeDefaultArgs<ExtArgs>
@@ -1472,6 +1483,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       pseudo: string
+      password: string
       age: number
       prenom: string
       createdAt: Date
@@ -1901,6 +1913,7 @@ export namespace Prisma {
   interface ContestantFieldRefs {
     readonly id: FieldRef<"Contestant", 'Int'>
     readonly pseudo: FieldRef<"Contestant", 'String'>
+    readonly password: FieldRef<"Contestant", 'String'>
     readonly age: FieldRef<"Contestant", 'Int'>
     readonly prenom: FieldRef<"Contestant", 'String'>
     readonly createdAt: FieldRef<"Contestant", 'DateTime'>
@@ -2349,34 +2362,45 @@ export namespace Prisma {
   export type JurorAvgAggregateOutputType = {
     id: number | null
     coeff: number | null
+    validationsCount: number | null
   }
 
   export type JurorSumAggregateOutputType = {
     id: number | null
     coeff: number | null
+    validationsCount: number | null
   }
 
   export type JurorMinAggregateOutputType = {
     id: number | null
     pseudo: string | null
+    email: string | null
     type: string | null
     coeff: number | null
+    validated: boolean | null
+    validationsCount: number | null
     createdAt: Date | null
   }
 
   export type JurorMaxAggregateOutputType = {
     id: number | null
     pseudo: string | null
+    email: string | null
     type: string | null
     coeff: number | null
+    validated: boolean | null
+    validationsCount: number | null
     createdAt: Date | null
   }
 
   export type JurorCountAggregateOutputType = {
     id: number
     pseudo: number
+    email: number
     type: number
     coeff: number
+    validated: number
+    validationsCount: number
     createdAt: number
     _all: number
   }
@@ -2385,34 +2409,45 @@ export namespace Prisma {
   export type JurorAvgAggregateInputType = {
     id?: true
     coeff?: true
+    validationsCount?: true
   }
 
   export type JurorSumAggregateInputType = {
     id?: true
     coeff?: true
+    validationsCount?: true
   }
 
   export type JurorMinAggregateInputType = {
     id?: true
     pseudo?: true
+    email?: true
     type?: true
     coeff?: true
+    validated?: true
+    validationsCount?: true
     createdAt?: true
   }
 
   export type JurorMaxAggregateInputType = {
     id?: true
     pseudo?: true
+    email?: true
     type?: true
     coeff?: true
+    validated?: true
+    validationsCount?: true
     createdAt?: true
   }
 
   export type JurorCountAggregateInputType = {
     id?: true
     pseudo?: true
+    email?: true
     type?: true
     coeff?: true
+    validated?: true
+    validationsCount?: true
     createdAt?: true
     _all?: true
   }
@@ -2506,8 +2541,11 @@ export namespace Prisma {
   export type JurorGroupByOutputType = {
     id: number
     pseudo: string
+    email: string
     type: string
     coeff: number
+    validated: boolean
+    validationsCount: number
     createdAt: Date
     _count: JurorCountAggregateOutputType | null
     _avg: JurorAvgAggregateOutputType | null
@@ -2533,8 +2571,11 @@ export namespace Prisma {
   export type JurorSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    email?: boolean
     type?: boolean
     coeff?: boolean
+    validated?: boolean
+    validationsCount?: boolean
     createdAt?: boolean
     ratings?: boolean | Juror$ratingsArgs<ExtArgs>
     _count?: boolean | JurorCountOutputTypeDefaultArgs<ExtArgs>
@@ -2543,28 +2584,37 @@ export namespace Prisma {
   export type JurorSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    email?: boolean
     type?: boolean
     coeff?: boolean
+    validated?: boolean
+    validationsCount?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["juror"]>
 
   export type JurorSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     pseudo?: boolean
+    email?: boolean
     type?: boolean
     coeff?: boolean
+    validated?: boolean
+    validationsCount?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["juror"]>
 
   export type JurorSelectScalar = {
     id?: boolean
     pseudo?: boolean
+    email?: boolean
     type?: boolean
     coeff?: boolean
+    validated?: boolean
+    validationsCount?: boolean
     createdAt?: boolean
   }
 
-  export type JurorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "type" | "coeff" | "createdAt", ExtArgs["result"]["juror"]>
+  export type JurorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "email" | "type" | "coeff" | "validated" | "validationsCount" | "createdAt", ExtArgs["result"]["juror"]>
   export type JurorInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ratings?: boolean | Juror$ratingsArgs<ExtArgs>
     _count?: boolean | JurorCountOutputTypeDefaultArgs<ExtArgs>
@@ -2580,8 +2630,11 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       pseudo: string
+      email: string
       type: string
       coeff: number
+      validated: boolean
+      validationsCount: number
       createdAt: Date
     }, ExtArgs["result"]["juror"]>
     composites: {}
@@ -3009,8 +3062,11 @@ export namespace Prisma {
   interface JurorFieldRefs {
     readonly id: FieldRef<"Juror", 'Int'>
     readonly pseudo: FieldRef<"Juror", 'String'>
+    readonly email: FieldRef<"Juror", 'String'>
     readonly type: FieldRef<"Juror", 'String'>
     readonly coeff: FieldRef<"Juror", 'Int'>
+    readonly validated: FieldRef<"Juror", 'Boolean'>
+    readonly validationsCount: FieldRef<"Juror", 'Int'>
     readonly createdAt: FieldRef<"Juror", 'DateTime'>
   }
     
@@ -4541,6 +4597,7 @@ export namespace Prisma {
     jurorId: number | null
     categoryId: number | null
     value: number | null
+    photoUrl: string | null
     createdAt: Date | null
   }
 
@@ -4550,6 +4607,7 @@ export namespace Prisma {
     jurorId: number | null
     categoryId: number | null
     value: number | null
+    photoUrl: string | null
     createdAt: Date | null
   }
 
@@ -4559,6 +4617,7 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl: number
     createdAt: number
     _all: number
   }
@@ -4586,6 +4645,7 @@ export namespace Prisma {
     jurorId?: true
     categoryId?: true
     value?: true
+    photoUrl?: true
     createdAt?: true
   }
 
@@ -4595,6 +4655,7 @@ export namespace Prisma {
     jurorId?: true
     categoryId?: true
     value?: true
+    photoUrl?: true
     createdAt?: true
   }
 
@@ -4604,6 +4665,7 @@ export namespace Prisma {
     jurorId?: true
     categoryId?: true
     value?: true
+    photoUrl?: true
     createdAt?: true
     _all?: true
   }
@@ -4700,6 +4762,7 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl: string | null
     createdAt: Date
     _count: RatingCountAggregateOutputType | null
     _avg: RatingAvgAggregateOutputType | null
@@ -4728,6 +4791,7 @@ export namespace Prisma {
     jurorId?: boolean
     categoryId?: boolean
     value?: boolean
+    photoUrl?: boolean
     createdAt?: boolean
     contestant?: boolean | ContestantDefaultArgs<ExtArgs>
     juror?: boolean | JurorDefaultArgs<ExtArgs>
@@ -4740,6 +4804,7 @@ export namespace Prisma {
     jurorId?: boolean
     categoryId?: boolean
     value?: boolean
+    photoUrl?: boolean
     createdAt?: boolean
     contestant?: boolean | ContestantDefaultArgs<ExtArgs>
     juror?: boolean | JurorDefaultArgs<ExtArgs>
@@ -4752,6 +4817,7 @@ export namespace Prisma {
     jurorId?: boolean
     categoryId?: boolean
     value?: boolean
+    photoUrl?: boolean
     createdAt?: boolean
     contestant?: boolean | ContestantDefaultArgs<ExtArgs>
     juror?: boolean | JurorDefaultArgs<ExtArgs>
@@ -4764,10 +4830,11 @@ export namespace Prisma {
     jurorId?: boolean
     categoryId?: boolean
     value?: boolean
+    photoUrl?: boolean
     createdAt?: boolean
   }
 
-  export type RatingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "contestantId" | "jurorId" | "categoryId" | "value" | "createdAt", ExtArgs["result"]["rating"]>
+  export type RatingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "contestantId" | "jurorId" | "categoryId" | "value" | "photoUrl" | "createdAt", ExtArgs["result"]["rating"]>
   export type RatingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     contestant?: boolean | ContestantDefaultArgs<ExtArgs>
     juror?: boolean | JurorDefaultArgs<ExtArgs>
@@ -4797,6 +4864,7 @@ export namespace Prisma {
       jurorId: number
       categoryId: number
       value: number
+      photoUrl: string | null
       createdAt: Date
     }, ExtArgs["result"]["rating"]>
     composites: {}
@@ -5229,6 +5297,7 @@ export namespace Prisma {
     readonly jurorId: FieldRef<"Rating", 'Int'>
     readonly categoryId: FieldRef<"Rating", 'Int'>
     readonly value: FieldRef<"Rating", 'Int'>
+    readonly photoUrl: FieldRef<"Rating", 'String'>
     readonly createdAt: FieldRef<"Rating", 'DateTime'>
   }
     
@@ -5661,6 +5730,7 @@ export namespace Prisma {
   export const ContestantScalarFieldEnum: {
     id: 'id',
     pseudo: 'pseudo',
+    password: 'password',
     age: 'age',
     prenom: 'prenom',
     createdAt: 'createdAt'
@@ -5672,8 +5742,11 @@ export namespace Prisma {
   export const JurorScalarFieldEnum: {
     id: 'id',
     pseudo: 'pseudo',
+    email: 'email',
     type: 'type',
     coeff: 'coeff',
+    validated: 'validated',
+    validationsCount: 'validationsCount',
     createdAt: 'createdAt'
   };
 
@@ -5694,6 +5767,7 @@ export namespace Prisma {
     jurorId: 'jurorId',
     categoryId: 'categoryId',
     value: 'value',
+    photoUrl: 'photoUrl',
     createdAt: 'createdAt'
   };
 
@@ -5714,6 +5788,14 @@ export namespace Prisma {
   };
 
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -5764,6 +5846,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -5786,6 +5875,7 @@ export namespace Prisma {
     NOT?: ContestantWhereInput | ContestantWhereInput[]
     id?: IntFilter<"Contestant"> | number
     pseudo?: StringFilter<"Contestant"> | string
+    password?: StringFilter<"Contestant"> | string
     age?: IntFilter<"Contestant"> | number
     prenom?: StringFilter<"Contestant"> | string
     createdAt?: DateTimeFilter<"Contestant"> | Date | string
@@ -5795,6 +5885,7 @@ export namespace Prisma {
   export type ContestantOrderByWithRelationInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
     createdAt?: SortOrder
@@ -5807,6 +5898,7 @@ export namespace Prisma {
     AND?: ContestantWhereInput | ContestantWhereInput[]
     OR?: ContestantWhereInput[]
     NOT?: ContestantWhereInput | ContestantWhereInput[]
+    password?: StringFilter<"Contestant"> | string
     age?: IntFilter<"Contestant"> | number
     prenom?: StringFilter<"Contestant"> | string
     createdAt?: DateTimeFilter<"Contestant"> | Date | string
@@ -5816,6 +5908,7 @@ export namespace Prisma {
   export type ContestantOrderByWithAggregationInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
     createdAt?: SortOrder
@@ -5832,6 +5925,7 @@ export namespace Prisma {
     NOT?: ContestantScalarWhereWithAggregatesInput | ContestantScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"Contestant"> | number
     pseudo?: StringWithAggregatesFilter<"Contestant"> | string
+    password?: StringWithAggregatesFilter<"Contestant"> | string
     age?: IntWithAggregatesFilter<"Contestant"> | number
     prenom?: StringWithAggregatesFilter<"Contestant"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Contestant"> | Date | string
@@ -5843,8 +5937,11 @@ export namespace Prisma {
     NOT?: JurorWhereInput | JurorWhereInput[]
     id?: IntFilter<"Juror"> | number
     pseudo?: StringFilter<"Juror"> | string
+    email?: StringFilter<"Juror"> | string
     type?: StringFilter<"Juror"> | string
     coeff?: IntFilter<"Juror"> | number
+    validated?: BoolFilter<"Juror"> | boolean
+    validationsCount?: IntFilter<"Juror"> | number
     createdAt?: DateTimeFilter<"Juror"> | Date | string
     ratings?: RatingListRelationFilter
   }
@@ -5852,8 +5949,11 @@ export namespace Prisma {
   export type JurorOrderByWithRelationInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    email?: SortOrder
     type?: SortOrder
     coeff?: SortOrder
+    validated?: SortOrder
+    validationsCount?: SortOrder
     createdAt?: SortOrder
     ratings?: RatingOrderByRelationAggregateInput
   }
@@ -5864,8 +5964,11 @@ export namespace Prisma {
     AND?: JurorWhereInput | JurorWhereInput[]
     OR?: JurorWhereInput[]
     NOT?: JurorWhereInput | JurorWhereInput[]
+    email?: StringFilter<"Juror"> | string
     type?: StringFilter<"Juror"> | string
     coeff?: IntFilter<"Juror"> | number
+    validated?: BoolFilter<"Juror"> | boolean
+    validationsCount?: IntFilter<"Juror"> | number
     createdAt?: DateTimeFilter<"Juror"> | Date | string
     ratings?: RatingListRelationFilter
   }, "id" | "pseudo">
@@ -5873,8 +5976,11 @@ export namespace Prisma {
   export type JurorOrderByWithAggregationInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    email?: SortOrder
     type?: SortOrder
     coeff?: SortOrder
+    validated?: SortOrder
+    validationsCount?: SortOrder
     createdAt?: SortOrder
     _count?: JurorCountOrderByAggregateInput
     _avg?: JurorAvgOrderByAggregateInput
@@ -5889,8 +5995,11 @@ export namespace Prisma {
     NOT?: JurorScalarWhereWithAggregatesInput | JurorScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"Juror"> | number
     pseudo?: StringWithAggregatesFilter<"Juror"> | string
+    email?: StringWithAggregatesFilter<"Juror"> | string
     type?: StringWithAggregatesFilter<"Juror"> | string
     coeff?: IntWithAggregatesFilter<"Juror"> | number
+    validated?: BoolWithAggregatesFilter<"Juror"> | boolean
+    validationsCount?: IntWithAggregatesFilter<"Juror"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Juror"> | Date | string
   }
 
@@ -5945,6 +6054,7 @@ export namespace Prisma {
     jurorId?: IntFilter<"Rating"> | number
     categoryId?: IntFilter<"Rating"> | number
     value?: IntFilter<"Rating"> | number
+    photoUrl?: StringNullableFilter<"Rating"> | string | null
     createdAt?: DateTimeFilter<"Rating"> | Date | string
     contestant?: XOR<ContestantScalarRelationFilter, ContestantWhereInput>
     juror?: XOR<JurorScalarRelationFilter, JurorWhereInput>
@@ -5957,6 +6067,7 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+    photoUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     contestant?: ContestantOrderByWithRelationInput
     juror?: JurorOrderByWithRelationInput
@@ -5973,6 +6084,7 @@ export namespace Prisma {
     jurorId?: IntFilter<"Rating"> | number
     categoryId?: IntFilter<"Rating"> | number
     value?: IntFilter<"Rating"> | number
+    photoUrl?: StringNullableFilter<"Rating"> | string | null
     createdAt?: DateTimeFilter<"Rating"> | Date | string
     contestant?: XOR<ContestantScalarRelationFilter, ContestantWhereInput>
     juror?: XOR<JurorScalarRelationFilter, JurorWhereInput>
@@ -5985,6 +6097,7 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+    photoUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: RatingCountOrderByAggregateInput
     _avg?: RatingAvgOrderByAggregateInput
@@ -6002,11 +6115,13 @@ export namespace Prisma {
     jurorId?: IntWithAggregatesFilter<"Rating"> | number
     categoryId?: IntWithAggregatesFilter<"Rating"> | number
     value?: IntWithAggregatesFilter<"Rating"> | number
+    photoUrl?: StringNullableWithAggregatesFilter<"Rating"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Rating"> | Date | string
   }
 
   export type ContestantCreateInput = {
     pseudo: string
+    password?: string
     age: number
     prenom: string
     createdAt?: Date | string
@@ -6016,6 +6131,7 @@ export namespace Prisma {
   export type ContestantUncheckedCreateInput = {
     id?: number
     pseudo: string
+    password?: string
     age: number
     prenom: string
     createdAt?: Date | string
@@ -6024,6 +6140,7 @@ export namespace Prisma {
 
   export type ContestantUpdateInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6033,6 +6150,7 @@ export namespace Prisma {
   export type ContestantUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6042,6 +6160,7 @@ export namespace Prisma {
   export type ContestantCreateManyInput = {
     id?: number
     pseudo: string
+    password?: string
     age: number
     prenom: string
     createdAt?: Date | string
@@ -6049,6 +6168,7 @@ export namespace Prisma {
 
   export type ContestantUpdateManyMutationInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6057,6 +6177,7 @@ export namespace Prisma {
   export type ContestantUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6064,8 +6185,11 @@ export namespace Prisma {
 
   export type JurorCreateInput = {
     pseudo: string
+    email?: string
     type: string
     coeff?: number
+    validated?: boolean
+    validationsCount?: number
     createdAt?: Date | string
     ratings?: RatingCreateNestedManyWithoutJurorInput
   }
@@ -6073,16 +6197,22 @@ export namespace Prisma {
   export type JurorUncheckedCreateInput = {
     id?: number
     pseudo: string
+    email?: string
     type: string
     coeff?: number
+    validated?: boolean
+    validationsCount?: number
     createdAt?: Date | string
     ratings?: RatingUncheckedCreateNestedManyWithoutJurorInput
   }
 
   export type JurorUpdateInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ratings?: RatingUpdateManyWithoutJurorNestedInput
   }
@@ -6090,8 +6220,11 @@ export namespace Prisma {
   export type JurorUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ratings?: RatingUncheckedUpdateManyWithoutJurorNestedInput
   }
@@ -6099,23 +6232,32 @@ export namespace Prisma {
   export type JurorCreateManyInput = {
     id?: number
     pseudo: string
+    email?: string
     type: string
     coeff?: number
+    validated?: boolean
+    validationsCount?: number
     createdAt?: Date | string
   }
 
   export type JurorUpdateManyMutationInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type JurorUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6157,6 +6299,7 @@ export namespace Prisma {
 
   export type RatingCreateInput = {
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
     contestant: ContestantCreateNestedOneWithoutRatingsInput
     juror: JurorCreateNestedOneWithoutRatingsInput
@@ -6169,11 +6312,13 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
   export type RatingUpdateInput = {
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contestant?: ContestantUpdateOneRequiredWithoutRatingsNestedInput
     juror?: JurorUpdateOneRequiredWithoutRatingsNestedInput
@@ -6186,6 +6331,7 @@ export namespace Prisma {
     jurorId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6195,11 +6341,13 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
   export type RatingUpdateManyMutationInput = {
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6209,6 +6357,7 @@ export namespace Prisma {
     jurorId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6262,6 +6411,7 @@ export namespace Prisma {
   export type ContestantCountOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
     createdAt?: SortOrder
@@ -6275,6 +6425,7 @@ export namespace Prisma {
   export type ContestantMaxOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
     createdAt?: SortOrder
@@ -6283,6 +6434,7 @@ export namespace Prisma {
   export type ContestantMinOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
     createdAt?: SortOrder
@@ -6341,38 +6493,62 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type JurorCountOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    email?: SortOrder
     type?: SortOrder
     coeff?: SortOrder
+    validated?: SortOrder
+    validationsCount?: SortOrder
     createdAt?: SortOrder
   }
 
   export type JurorAvgOrderByAggregateInput = {
     id?: SortOrder
     coeff?: SortOrder
+    validationsCount?: SortOrder
   }
 
   export type JurorMaxOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    email?: SortOrder
     type?: SortOrder
     coeff?: SortOrder
+    validated?: SortOrder
+    validationsCount?: SortOrder
     createdAt?: SortOrder
   }
 
   export type JurorMinOrderByAggregateInput = {
     id?: SortOrder
     pseudo?: SortOrder
+    email?: SortOrder
     type?: SortOrder
     coeff?: SortOrder
+    validated?: SortOrder
+    validationsCount?: SortOrder
     createdAt?: SortOrder
   }
 
   export type JurorSumOrderByAggregateInput = {
     id?: SortOrder
     coeff?: SortOrder
+    validationsCount?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type CategoryCountOrderByAggregateInput = {
@@ -6398,6 +6574,21 @@ export namespace Prisma {
     id?: SortOrder
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type ContestantScalarRelationFilter = {
     is?: ContestantWhereInput
     isNot?: ContestantWhereInput
@@ -6413,6 +6604,11 @@ export namespace Prisma {
     isNot?: CategoryWhereInput
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type RatingContestantIdJurorIdCategoryIdCompoundUniqueInput = {
     contestantId: number
     jurorId: number
@@ -6425,6 +6621,7 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+    photoUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -6442,6 +6639,7 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+    photoUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -6451,6 +6649,7 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+    photoUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -6460,6 +6659,24 @@ export namespace Prisma {
     jurorId?: SortOrder
     categoryId?: SortOrder
     value?: SortOrder
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type RatingCreateNestedManyWithoutContestantInput = {
@@ -6532,6 +6749,10 @@ export namespace Prisma {
     connectOrCreate?: RatingCreateOrConnectWithoutJurorInput | RatingCreateOrConnectWithoutJurorInput[]
     createMany?: RatingCreateManyJurorInputEnvelope
     connect?: RatingWhereUniqueInput | RatingWhereUniqueInput[]
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
   }
 
   export type RatingUpdateManyWithoutJurorNestedInput = {
@@ -6620,6 +6841,10 @@ export namespace Prisma {
     create?: XOR<CategoryCreateWithoutRatingsInput, CategoryUncheckedCreateWithoutRatingsInput>
     connectOrCreate?: CategoryCreateOrConnectWithoutRatingsInput
     connect?: CategoryWhereUniqueInput
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
   }
 
   export type ContestantUpdateOneRequiredWithoutRatingsNestedInput = {
@@ -6740,8 +6965,64 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
   export type RatingCreateWithoutContestantInput = {
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
     juror: JurorCreateNestedOneWithoutRatingsInput
     category: CategoryCreateNestedOneWithoutRatingsInput
@@ -6752,6 +7033,7 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
@@ -6790,11 +7072,13 @@ export namespace Prisma {
     jurorId?: IntFilter<"Rating"> | number
     categoryId?: IntFilter<"Rating"> | number
     value?: IntFilter<"Rating"> | number
+    photoUrl?: StringNullableFilter<"Rating"> | string | null
     createdAt?: DateTimeFilter<"Rating"> | Date | string
   }
 
   export type RatingCreateWithoutJurorInput = {
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
     contestant: ContestantCreateNestedOneWithoutRatingsInput
     category: CategoryCreateNestedOneWithoutRatingsInput
@@ -6805,6 +7089,7 @@ export namespace Prisma {
     contestantId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
@@ -6836,6 +7121,7 @@ export namespace Prisma {
 
   export type RatingCreateWithoutCategoryInput = {
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
     contestant: ContestantCreateNestedOneWithoutRatingsInput
     juror: JurorCreateNestedOneWithoutRatingsInput
@@ -6846,6 +7132,7 @@ export namespace Prisma {
     contestantId: number
     jurorId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
@@ -6877,6 +7164,7 @@ export namespace Prisma {
 
   export type ContestantCreateWithoutRatingsInput = {
     pseudo: string
+    password?: string
     age: number
     prenom: string
     createdAt?: Date | string
@@ -6885,6 +7173,7 @@ export namespace Prisma {
   export type ContestantUncheckedCreateWithoutRatingsInput = {
     id?: number
     pseudo: string
+    password?: string
     age: number
     prenom: string
     createdAt?: Date | string
@@ -6897,16 +7186,22 @@ export namespace Prisma {
 
   export type JurorCreateWithoutRatingsInput = {
     pseudo: string
+    email?: string
     type: string
     coeff?: number
+    validated?: boolean
+    validationsCount?: number
     createdAt?: Date | string
   }
 
   export type JurorUncheckedCreateWithoutRatingsInput = {
     id?: number
     pseudo: string
+    email?: string
     type: string
     coeff?: number
+    validated?: boolean
+    validationsCount?: number
     createdAt?: Date | string
   }
 
@@ -6942,6 +7237,7 @@ export namespace Prisma {
 
   export type ContestantUpdateWithoutRatingsInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6950,6 +7246,7 @@ export namespace Prisma {
   export type ContestantUncheckedUpdateWithoutRatingsInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -6968,16 +7265,22 @@ export namespace Prisma {
 
   export type JurorUpdateWithoutRatingsInput = {
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type JurorUncheckedUpdateWithoutRatingsInput = {
     id?: IntFieldUpdateOperationsInput | number
     pseudo?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
     coeff?: IntFieldUpdateOperationsInput | number
+    validated?: BoolFieldUpdateOperationsInput | boolean
+    validationsCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7006,11 +7309,13 @@ export namespace Prisma {
     jurorId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
   export type RatingUpdateWithoutContestantInput = {
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     juror?: JurorUpdateOneRequiredWithoutRatingsNestedInput
     category?: CategoryUpdateOneRequiredWithoutRatingsNestedInput
@@ -7021,6 +7326,7 @@ export namespace Prisma {
     jurorId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7029,6 +7335,7 @@ export namespace Prisma {
     jurorId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7037,11 +7344,13 @@ export namespace Prisma {
     contestantId: number
     categoryId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
   export type RatingUpdateWithoutJurorInput = {
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contestant?: ContestantUpdateOneRequiredWithoutRatingsNestedInput
     category?: CategoryUpdateOneRequiredWithoutRatingsNestedInput
@@ -7052,6 +7361,7 @@ export namespace Prisma {
     contestantId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7060,6 +7370,7 @@ export namespace Prisma {
     contestantId?: IntFieldUpdateOperationsInput | number
     categoryId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7068,11 +7379,13 @@ export namespace Prisma {
     contestantId: number
     jurorId: number
     value: number
+    photoUrl?: string | null
     createdAt?: Date | string
   }
 
   export type RatingUpdateWithoutCategoryInput = {
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contestant?: ContestantUpdateOneRequiredWithoutRatingsNestedInput
     juror?: JurorUpdateOneRequiredWithoutRatingsNestedInput
@@ -7083,6 +7396,7 @@ export namespace Prisma {
     contestantId?: IntFieldUpdateOperationsInput | number
     jurorId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7091,6 +7405,7 @@ export namespace Prisma {
     contestantId?: IntFieldUpdateOperationsInput | number
     jurorId?: IntFieldUpdateOperationsInput | number
     value?: IntFieldUpdateOperationsInput | number
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

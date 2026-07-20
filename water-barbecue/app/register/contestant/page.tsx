@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export default function RegisterContestantPage() {
   const [pseudo, setPseudo] = useState("");
+  const [password, setPassword] = useState("");
   const [age, setAge] = useState("");
   const [prenom, setPrenom] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -12,9 +13,14 @@ export default function RegisterContestantPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pseudo.trim() || !age.trim() || !prenom.trim()) {
+    if (!pseudo.trim() || !password.trim() || !age.trim() || !prenom.trim()) {
       setStatus("error");
       setMessage("Tous les champs sont requis");
+      return;
+    }
+    if (password.length < 3) {
+      setStatus("error");
+      setMessage("Mot de passe trop court (min 3 caractères)");
       return;
     }
 
@@ -25,7 +31,7 @@ export default function RegisterContestantPage() {
       const res = await fetch("/api/contestants/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pseudo: pseudo.trim(), age: parseInt(age), prenom: prenom.trim() }),
+        body: JSON.stringify({ pseudo: pseudo.trim(), password, age: parseInt(age), prenom: prenom.trim() }),
       });
 
       const data = await res.json();
@@ -63,16 +69,23 @@ export default function RegisterContestantPage() {
           <p className="text-green-200/60 text-sm">
             Un jury va bientôt évaluer ta création. Bonne chance ! 🚤
           </p>
-          <a
-            href="/"
-            className="inline-block bg-green-600 text-white font-semibold py-3 px-8 rounded-2xl hover:bg-green-500 transition-all"
-          >
-            Retour à l'accueil
-          </a>
+          <div className="flex gap-3 justify-center">
+            <a
+              href="/contestant/login"
+              className="inline-block bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold py-3 px-6 rounded-2xl hover:from-blue-500 hover:to-cyan-500 transition-all"
+            >
+              🔑 Me connecter
+            </a>
+            <a
+              href="/"
+              className="inline-block bg-white/10 text-white font-semibold py-3 px-6 rounded-2xl hover:bg-white/20 transition-all"
+            >
+              Accueil
+            </a>
+          </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-lg border border-blue-500/20 rounded-3xl p-6 space-y-4">
-          <div>
+        <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-lg border border-blue-500/20 rounded-3xl p-6 space-y-4">              <div>
             <label className="block text-blue-200 text-sm font-medium mb-1">Pseudo</label>
             <input
               value={pseudo}
@@ -80,6 +93,17 @@ export default function RegisterContestantPage() {
               className="w-full bg-white/10 border border-blue-500/30 rounded-xl px-4 py-3 text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 transition-all"
               placeholder="Ex: AquaMaster"
               maxLength={30}
+            />
+          </div>
+          <div>
+            <label className="block text-blue-200 text-sm font-medium mb-1">Mot de passe</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-white/10 border border-blue-500/30 rounded-xl px-4 py-3 text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 transition-all"
+              placeholder="Min 3 caractères"
+              minLength={3}
             />
           </div>
           <div>

@@ -96,6 +96,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.ContestantScalarFieldEnum = {
   id: 'id',
   pseudo: 'pseudo',
+  password: 'password',
   age: 'age',
   prenom: 'prenom',
   createdAt: 'createdAt'
@@ -104,8 +105,11 @@ exports.Prisma.ContestantScalarFieldEnum = {
 exports.Prisma.JurorScalarFieldEnum = {
   id: 'id',
   pseudo: 'pseudo',
+  email: 'email',
   type: 'type',
   coeff: 'coeff',
+  validated: 'validated',
+  validationsCount: 'validationsCount',
   createdAt: 'createdAt'
 };
 
@@ -120,6 +124,7 @@ exports.Prisma.RatingScalarFieldEnum = {
   jurorId: 'jurorId',
   categoryId: 'categoryId',
   value: 'value',
+  photoUrl: 'photoUrl',
   createdAt: 'createdAt'
 };
 
@@ -131,6 +136,11 @@ exports.Prisma.SortOrder = {
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 
 
@@ -179,7 +189,6 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -188,13 +197,13 @@ const config = {
       }
     }
   },
-  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../lib/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel Contestant {\n  id        Int      @id @default(autoincrement())\n  pseudo    String   @unique\n  age       Int\n  prenom    String\n  createdAt DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Juror {\n  id        Int      @id @default(autoincrement())\n  pseudo    String   @unique\n  type      String // DONNATEUR, FAMILY, CURIEUX\n  coeff     Int      @default(2) // 6=donnateur, 4=family, 2=curieux\n  createdAt DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Category {\n  id   Int    @id @default(autoincrement())\n  name String @unique\n\n  ratings Rating[]\n}\n\nmodel Rating {\n  id           Int      @id @default(autoincrement())\n  contestantId Int\n  jurorId      Int\n  categoryId   Int\n  value        Int // 1-9\n  createdAt    DateTime @default(now())\n\n  contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)\n  juror      Juror      @relation(fields: [jurorId], references: [id], onDelete: Cascade)\n  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n\n  @@unique([contestantId, jurorId, categoryId])\n}\n",
-  "inlineSchemaHash": "d9b45858c9cfb9fe08175fa99506e4907d43a553f60c7463db95f270c928dbf4",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../lib/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel Contestant {\n  id        Int      @id @default(autoincrement())\n  pseudo    String   @unique\n  password  String   @default(\"\")\n  age       Int\n  prenom    String\n  createdAt DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Juror {\n  id               Int      @id @default(autoincrement())\n  pseudo           String   @unique\n  email            String   @default(\"\")\n  type             String // DONNATEUR, FAMILY, CURIEUX\n  coeff            Int      @default(2) // 6=donnateur, 4=family, 2=curieux\n  validated        Boolean  @default(false)\n  validationsCount Int      @default(0)\n  createdAt        DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Category {\n  id   Int    @id @default(autoincrement())\n  name String @unique\n\n  ratings Rating[]\n}\n\nmodel Rating {\n  id           Int      @id @default(autoincrement())\n  contestantId Int\n  jurorId      Int\n  categoryId   Int\n  value        Int // 1-9\n  photoUrl     String? // photo optionnelle pour booster le vote\n  createdAt    DateTime @default(now())\n\n  contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)\n  juror      Juror      @relation(fields: [jurorId], references: [id], onDelete: Cascade)\n  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n\n  @@unique([contestantId, jurorId, categoryId])\n}\n",
+  "inlineSchemaHash": "8f1e1ee3777c7e763f29dd71690267dff540715a903c84e80b033468916a2523",
   "copyEngine": true
 }
 config.dirname = '/'
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"Contestant\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pseudo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"age\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"prenom\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"ContestantToRating\"}],\"dbName\":null},\"Juror\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pseudo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"coeff\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"JurorToRating\"}],\"dbName\":null},\"Category\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"CategoryToRating\"}],\"dbName\":null},\"Rating\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"contestantId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"jurorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"contestant\",\"kind\":\"object\",\"type\":\"Contestant\",\"relationName\":\"ContestantToRating\"},{\"name\":\"juror\",\"kind\":\"object\",\"type\":\"Juror\",\"relationName\":\"JurorToRating\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"CategoryToRating\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"Contestant\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pseudo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"age\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"prenom\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"ContestantToRating\"}],\"dbName\":null},\"Juror\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"pseudo\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"type\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"coeff\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"validated\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"validationsCount\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"JurorToRating\"}],\"dbName\":null},\"Category\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ratings\",\"kind\":\"object\",\"type\":\"Rating\",\"relationName\":\"CategoryToRating\"}],\"dbName\":null},\"Rating\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"contestantId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"jurorId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"categoryId\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"photoUrl\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"contestant\",\"kind\":\"object\",\"type\":\"Contestant\",\"relationName\":\"ContestantToRating\"},{\"name\":\"juror\",\"kind\":\"object\",\"type\":\"Juror\",\"relationName\":\"JurorToRating\"},{\"name\":\"category\",\"kind\":\"object\",\"type\":\"Category\",\"relationName\":\"CategoryToRating\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 defineDmmfProperty(exports.Prisma, config.runtimeDataModel)
 config.engineWasm = {
   getRuntime: async () => require('./query_engine_bg.js'),

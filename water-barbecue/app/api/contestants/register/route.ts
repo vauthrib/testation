@@ -18,10 +18,13 @@ const DEFAULT_CATEGORIES = [
 
 export async function POST(request: Request) {
   try {
-    const { pseudo, age, prenom } = await request.json();
+    const { pseudo, password, age, prenom } = await request.json();
 
-    if (!pseudo || !age || !prenom) {
-      return NextResponse.json({ error: "pseudo, age et prenom requis" }, { status: 400 });
+    if (!pseudo || !password || !age || !prenom) {
+      return NextResponse.json({ error: "pseudo, password, age et prenom requis" }, { status: 400 });
+    }
+    if (password.length < 3) {
+      return NextResponse.json({ error: "Mot de passe trop court (min 3 caractères)" }, { status: 400 });
     }
 
     // Vérifier unicité
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     const contestant = await prisma.contestant.create({
-      data: { pseudo, age: parseInt(age), prenom },
+      data: { pseudo, password, age: parseInt(age), prenom },
     });
 
     return NextResponse.json({ success: true, contestant });

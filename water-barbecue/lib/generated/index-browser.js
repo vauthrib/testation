@@ -124,6 +124,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.ContestantScalarFieldEnum = {
   id: 'id',
   pseudo: 'pseudo',
+  password: 'password',
   age: 'age',
   prenom: 'prenom',
   createdAt: 'createdAt'
@@ -132,8 +133,11 @@ exports.Prisma.ContestantScalarFieldEnum = {
 exports.Prisma.JurorScalarFieldEnum = {
   id: 'id',
   pseudo: 'pseudo',
+  email: 'email',
   type: 'type',
   coeff: 'coeff',
+  validated: 'validated',
+  validationsCount: 'validationsCount',
   createdAt: 'createdAt'
 };
 
@@ -148,6 +152,7 @@ exports.Prisma.RatingScalarFieldEnum = {
   jurorId: 'jurorId',
   categoryId: 'categoryId',
   value: 'value',
+  photoUrl: 'photoUrl',
   createdAt: 'createdAt'
 };
 
@@ -159,6 +164,11 @@ exports.Prisma.SortOrder = {
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
+};
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
 };
 
 

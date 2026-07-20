@@ -3,10 +3,13 @@ import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const { pseudo, type } = await request.json();
+    const { pseudo, email, type } = await request.json();
 
     if (!pseudo || !type) {
       return NextResponse.json({ error: "pseudo et type requis" }, { status: 400 });
+    }
+    if (!email || !email.includes("@")) {
+      return NextResponse.json({ error: "Email valide requis" }, { status: 400 });
     }
 
     const validTypes = ["DONNATEUR", "FAMILY", "CURIEUX"];
@@ -15,6 +18,8 @@ export async function POST(request: Request) {
     }
 
     const coeff = type === "DONNATEUR" ? 6 : type === "FAMILY" ? 4 : 2;
+    // Donateur et Family nécessitent validation, Curieux non
+    const needsValidation = type === "DONNATEUR" || type === "FAMILY";
 
     const existing = await prisma.juror.findUnique({ where: { pseudo } });
     if (existing) {
@@ -22,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const juror = await prisma.juror.create({
-      data: { pseudo, type, coeff },
+      data: { pseudo, email, type, coeff, validated: !needsValidation },
     });
 
     return NextResponse.json({ success: true, juror });

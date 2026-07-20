@@ -10,6 +10,7 @@ const JURY_TYPES = [
 
 export default function RegisterJuryPage() {
   const [pseudo, setPseudo] = useState("");
+  const [email, setEmail] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -21,6 +22,11 @@ export default function RegisterJuryPage() {
       setMessage("Pseudo et type de jury requis");
       return;
     }
+    if (!email.includes("@")) {
+      setStatus("error");
+      setMessage("Email valide requis");
+      return;
+    }
 
     setStatus("loading");
     setMessage("");
@@ -29,14 +35,18 @@ export default function RegisterJuryPage() {
       const res = await fetch("/api/jurors/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pseudo: pseudo.trim(), type }),
+        body: JSON.stringify({ pseudo: pseudo.trim(), email: email.trim(), type }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
+        const needsValidation = type === "DONNATEUR" || type === "FAMILY";
+        const extraMsg = needsValidation
+          ? " En attente de validation par les concurrents."
+          : " Tu peux voter immédiatement !";
         setStatus("success");
-        setMessage(`Bienvenue ${data.juror.pseudo} ! Tu es maintenant jury (${type}) avec un coefficient ${data.juror.coeff}.`);
+        setMessage(`Bienvenue ${data.juror.pseudo} ! Tu es maintenant jury (${type}) avec un coefficient ${data.juror.coeff}.${extraMsg}`);
       } else {
         setStatus("error");
         setMessage(data.error || "Erreur d'inscription");
@@ -55,10 +65,16 @@ export default function RegisterJuryPage() {
           <div className="text-5xl">⚖️</div>
           <p className="text-green-300 font-bold text-lg">{message}</p>
           <p className="text-green-200/60 text-sm">Tu peux maintenant évaluer les concurrents !</p>
-          <div className="flex gap-3 justify-center">
-            <a href={`/vote?juror=${encodeURIComponent(pseudo)}`} className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 px-6 rounded-2xl hover:from-orange-400 hover:to-red-400 transition-all">
-              🎯 Voter maintenant
-            </a>
+          <div className="flex gap-3 justify-center flex-wrap">
+            {type !== "DONNATEUR" && type !== "FAMILY" ? (
+              <a href={`/vote?juror=${encodeURIComponent(pseudo)}`} className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 px-6 rounded-2xl hover:from-orange-400 hover:to-red-400 transition-all">
+                🎯 Voter maintenant
+              </a>
+            ) : (
+              <a href="/contestant/dashboard" className="bg-orange-600/40 text-orange-300 font-bold py-3 px-6 rounded-2xl hover:bg-orange-600/60 transition-all border border-orange-500/30">
+                ⏳ En attente de validation
+              </a>
+            )}
             <a href="/results" className="bg-green-600 text-white font-semibold py-3 px-6 rounded-2xl hover:bg-green-500 transition-all">
               🏆 Classement
             </a>
@@ -90,6 +106,16 @@ export default function RegisterJuryPage() {
             className="w-full bg-white/10 border border-orange-500/30 rounded-xl px-4 py-3 text-white placeholder-orange-300/50 focus:outline-none focus:border-orange-400 transition-all"
             placeholder="Ex: JudgeDredd"
             maxLength={30}
+          />
+        </div>
+        <div>
+          <label className="block text-orange-200 text-sm font-medium mb-1">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-white/10 border border-orange-500/30 rounded-xl px-4 py-3 text-white placeholder-orange-300/50 focus:outline-none focus:border-orange-400 transition-all"
+            placeholder="Ex: judge@email.com"
           />
         </div>
 

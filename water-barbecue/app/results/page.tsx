@@ -28,7 +28,7 @@ export default function ResultsPage() {
   const [error, setError] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [sortBy, setSortBy] = useState<"general" | string>("general");
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
 
   const fetchResults = async () => {
     try {

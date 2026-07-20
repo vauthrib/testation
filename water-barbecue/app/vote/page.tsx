@@ -25,6 +25,8 @@ function VoteContent() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [ratings, setRatings] = useState<Record<string, Record<number, number>>>({});
+  const [ratingsPhoto, setRatingsPhoto] = useState<Record<string, Record<number, string>>>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [selectedContestant, setSelectedContestant] = useState<number | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -78,6 +80,23 @@ function VoteContent() {
     }));
   };
 
+  const handlePhotoUpload = async (contestantId: number, categoryId: number, file: File) => {
+    setUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setRatingsPhoto((prev) => ({
+          ...prev,
+          [contestantId]: { ...(prev[contestantId] || {}), [categoryId]: reader.result as string },
+        }));
+        setUploadingPhoto(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setUploadingPhoto(false);
+    }
+  };
+
   const submitVotes = async (contestantId: number) => {
     if (!jurorId) return;
     const contestantRatings = ratings[contestantId];
@@ -91,6 +110,7 @@ function VoteContent() {
     const ratingsArray = Object.entries(contestantRatings).map(([catId, value]) => ({
       categoryId: parseInt(catId),
       value,
+      photoUrl: ratingsPhoto[contestantId]?.[parseInt(catId)] || null,
     }));
 
     setStatus("loading");
@@ -247,6 +267,7 @@ function VoteContent() {
                   <div className="px-5 pb-5 space-y-3 border-t border-white/10 pt-4">
                     {categories.map((cat) => {
                       const currentValue = ratings[c.id]?.[cat.id] || 0;
+                      const photo = ratingsPhoto[c.id]?.[cat.id];
                       return (
                         <div key={cat.id}>
                           <div className="flex items-center justify-between mb-1.5">
@@ -269,6 +290,36 @@ function VoteContent() {
                                 {n}
                               </button>
                             ))}
+                          </div>
+                          {/* Photo upload */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <label className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs cursor-pointer transition-all ${
+                              photo ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-white/5 text-blue-300/60 border border-dashed border-white/20 hover:text-white hover:border-white/40"
+                            }`}>
+                              <span>{photo ? "📸 Photo ajoutée" : "📷 Ajouter une photo (booste le vote)"}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingPhoto}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handlePhotoUpload(c.id, cat.id, file);
+                                }}
+                              />
+                            </label>
+                            {photo && (
+                              <button
+                                onClick={() => setRatingsPhoto((prev) => {
+                                  const updated = { ...prev };
+                                  if (updated[c.id]) delete updated[c.id][cat.id];
+                                  return updated;
+                                })}
+                                className="text-red-400 text-xs hover:text-red-300"
+                              >
+                                ✕
+                              </button>
+                            )}
                           </div>
                         </div>
                       );

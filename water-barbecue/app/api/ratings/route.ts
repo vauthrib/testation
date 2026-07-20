@@ -10,9 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Données incomplètes" }, { status: 400 });
     }
 
+    // Vérifier validation du jury
     const juror = await prisma.juror.findUnique({ where: { id: jurorId } });
     if (!juror) {
       return NextResponse.json({ error: "Jury introuvable" }, { status: 404 });
+    }
+    if (!juror.validated) {
+      return NextResponse.json({ error: "Jury pas encore validé par les concurrents" }, { status: 403 });
     }
 
     const contestant = await prisma.contestant.findUnique({ where: { id: contestantId } });
@@ -41,6 +45,7 @@ export async function POST(request: Request) {
           jurorId,
           categoryId: r.categoryId,
           value: r.value,
+          photoUrl: r.photoUrl || null,
         },
       });
       results.push(rating);
