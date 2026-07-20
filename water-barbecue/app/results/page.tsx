@@ -7,10 +7,11 @@ interface CategoryResult {
   categoryId: number;
   moyenne: number | null;
   nbVotes: number;
+  photos: string[];
 }
 
 interface ContestantResult {
-  contestant: { id: number; pseudo: string; age: number; prenom: string };
+  contestant: { id: number; pseudo: string; age: number; prenom: string; popularite: number };
   categories: CategoryResult[];
   moyenneGenerale: number | null;
   nbJurys: number;
@@ -226,7 +227,11 @@ export default function ResultsPage() {
                         {result.contestant.pseudo}
                       </div>
                       <div className={`text-xs ${hasNotes ? "text-blue-300" : "text-blue-300/20"}`}>
-                        {result.contestant.prenom} · {result.nbJurys} jurys
+                            {result.contestant.prenom} · {result.nbJurys} jurys
+                            {result.contestant.popularite > 0 && (
+                              <span className="text-pink-400 ml-1">❤️ {result.contestant.popularite}</span>
+                            )}
+                          
                       </div>
                     </div>
 
@@ -277,11 +282,15 @@ export default function ResultsPage() {
                         {cat.name.length > 8 ? cat.name.slice(0, 8) + "…" : cat.name}
                       </th>
                     ))}
+                    <th className="text-center py-2 px-1 text-blue-300/60 font-medium text-xs">📸</th>
+                    <th className="text-center py-2 px-1 text-pink-300/60 font-medium text-xs">❤️</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedResults.map((result, index) => {
                     const hasNotes = result.moyenneGenerale !== null;
+                    const hasPhotos = result.categories.some(c => c.photos?.length > 0);
+                    const totalPhotos = result.categories.reduce((s, c) => s + (c.photos?.length || 0), 0);
                     return (
                       <tr
                         key={result.contestant.id}
@@ -319,8 +328,10 @@ export default function ResultsPage() {
                             (c) => c.categoryId === cat.id
                           );
                           const val = catResult?.moyenne;
+                          const catPhotos = catResult?.photos || [];
+                          const hasCatPhoto = catPhotos.length > 0;
                           return (
-                            <td key={cat.id} className="text-center py-3 px-1">
+                            <td key={cat.id} className={`text-center py-3 px-1 relative ${hasCatPhoto ? "bg-blue-500/5" : ""}`}>
                               {val !== null && val !== undefined ? (
                                 <div className="flex flex-col items-center">
                                   <span className="text-white font-bold text-xs">
@@ -333,9 +344,38 @@ export default function ResultsPage() {
                               ) : (
                                 <span className="text-blue-300/15 text-xs">·</span>
                               )}
+                              {hasCatPhoto && (
+                                <div className="flex justify-center gap-0.5 mt-0.5">
+                                  {catPhotos.slice(0, 2).map((photo, pi) => (
+                                    <div key={pi} className="group relative">
+                                      <img src={photo} alt="" className="w-5 h-5 rounded object-cover cursor-pointer hover:scale-3 transition-transform" />
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
+                                        <img src={photo} alt="Photo" className="w-32 h-32 rounded-lg object-cover border-2 border-blue-400 shadow-xl" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {catPhotos.length > 2 && (
+                                    <span className="text-[8px] text-blue-300/50">+{catPhotos.length - 2}</span>
+                                  )}
+                                </div>
+                              )}
                             </td>
                           );
                         })}
+                        <td className="text-center py-3 px-1">
+                          {hasPhotos ? (
+                            <span className="text-blue-300 text-xs" title={`${totalPhotos} photo(s)`}>📸</span>
+                          ) : (
+                            <span className="text-blue-300/15 text-xs">·</span>
+                          )}
+                        </td>
+                        <td className="text-center py-3 px-1">
+                          {result.contestant.popularite > 0 ? (
+                            <span className="text-pink-300 font-bold text-xs">{result.contestant.popularite}</span>
+                          ) : (
+                            <span className="text-blue-300/15 text-xs">·</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

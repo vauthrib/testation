@@ -127,6 +127,7 @@ exports.Prisma.ContestantScalarFieldEnum = {
   password: 'password',
   age: 'age',
   prenom: 'prenom',
+  popularite: 'popularite',
   createdAt: 'createdAt'
 };
 

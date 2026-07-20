@@ -21,16 +21,19 @@ export async function GET() {
             categoryId: cat.id,
             moyenne: null,
             nbVotes: 0,
+            photos: [] as string[],
           };
         }
 
         // Moyenne pondérée par le coefficient du jury
         let totalPondere = 0;
         let totalCoeff = 0;
+        const photos: string[] = [];
 
         for (const r of catRatings) {
           totalPondere += r.value * r.juror.coeff;
           totalCoeff += r.juror.coeff;
+          if (r.photoUrl) photos.push(r.photoUrl);
         }
 
         const moyenne = totalCoeff > 0
@@ -42,6 +45,7 @@ export async function GET() {
           categoryId: cat.id,
           moyenne,
           nbVotes: catRatings.length,
+          photos,
         };
       });
 
@@ -60,6 +64,7 @@ export async function GET() {
           pseudo: c.pseudo,
           age: c.age,
           prenom: c.prenom,
+          popularite: c.popularite,
         },
         categories: categoriesResults,
         moyenneGenerale,

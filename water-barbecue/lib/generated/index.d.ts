@@ -1241,11 +1241,13 @@ export namespace Prisma {
   export type ContestantAvgAggregateOutputType = {
     id: number | null
     age: number | null
+    popularite: number | null
   }
 
   export type ContestantSumAggregateOutputType = {
     id: number | null
     age: number | null
+    popularite: number | null
   }
 
   export type ContestantMinAggregateOutputType = {
@@ -1254,6 +1256,7 @@ export namespace Prisma {
     password: string | null
     age: number | null
     prenom: string | null
+    popularite: number | null
     createdAt: Date | null
   }
 
@@ -1263,6 +1266,7 @@ export namespace Prisma {
     password: string | null
     age: number | null
     prenom: string | null
+    popularite: number | null
     createdAt: Date | null
   }
 
@@ -1272,6 +1276,7 @@ export namespace Prisma {
     password: number
     age: number
     prenom: number
+    popularite: number
     createdAt: number
     _all: number
   }
@@ -1280,11 +1285,13 @@ export namespace Prisma {
   export type ContestantAvgAggregateInputType = {
     id?: true
     age?: true
+    popularite?: true
   }
 
   export type ContestantSumAggregateInputType = {
     id?: true
     age?: true
+    popularite?: true
   }
 
   export type ContestantMinAggregateInputType = {
@@ -1293,6 +1300,7 @@ export namespace Prisma {
     password?: true
     age?: true
     prenom?: true
+    popularite?: true
     createdAt?: true
   }
 
@@ -1302,6 +1310,7 @@ export namespace Prisma {
     password?: true
     age?: true
     prenom?: true
+    popularite?: true
     createdAt?: true
   }
 
@@ -1311,6 +1320,7 @@ export namespace Prisma {
     password?: true
     age?: true
     prenom?: true
+    popularite?: true
     createdAt?: true
     _all?: true
   }
@@ -1407,6 +1417,7 @@ export namespace Prisma {
     password: string
     age: number
     prenom: string
+    popularite: number
     createdAt: Date
     _count: ContestantCountAggregateOutputType | null
     _avg: ContestantAvgAggregateOutputType | null
@@ -1435,6 +1446,7 @@ export namespace Prisma {
     password?: boolean
     age?: boolean
     prenom?: boolean
+    popularite?: boolean
     createdAt?: boolean
     ratings?: boolean | Contestant$ratingsArgs<ExtArgs>
     _count?: boolean | ContestantCountOutputTypeDefaultArgs<ExtArgs>
@@ -1446,6 +1458,7 @@ export namespace Prisma {
     password?: boolean
     age?: boolean
     prenom?: boolean
+    popularite?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["contestant"]>
 
@@ -1455,6 +1468,7 @@ export namespace Prisma {
     password?: boolean
     age?: boolean
     prenom?: boolean
+    popularite?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["contestant"]>
 
@@ -1464,10 +1478,11 @@ export namespace Prisma {
     password?: boolean
     age?: boolean
     prenom?: boolean
+    popularite?: boolean
     createdAt?: boolean
   }
 
-  export type ContestantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "password" | "age" | "prenom" | "createdAt", ExtArgs["result"]["contestant"]>
+  export type ContestantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pseudo" | "password" | "age" | "prenom" | "popularite" | "createdAt", ExtArgs["result"]["contestant"]>
   export type ContestantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ratings?: boolean | Contestant$ratingsArgs<ExtArgs>
     _count?: boolean | ContestantCountOutputTypeDefaultArgs<ExtArgs>
@@ -1486,6 +1501,7 @@ export namespace Prisma {
       password: string
       age: number
       prenom: string
+      popularite: number
       createdAt: Date
     }, ExtArgs["result"]["contestant"]>
     composites: {}
@@ -1916,6 +1932,7 @@ export namespace Prisma {
     readonly password: FieldRef<"Contestant", 'String'>
     readonly age: FieldRef<"Contestant", 'Int'>
     readonly prenom: FieldRef<"Contestant", 'String'>
+    readonly popularite: FieldRef<"Contestant", 'Int'>
     readonly createdAt: FieldRef<"Contestant", 'DateTime'>
   }
     
@@ -5733,6 +5750,7 @@ export namespace Prisma {
     password: 'password',
     age: 'age',
     prenom: 'prenom',
+    popularite: 'popularite',
     createdAt: 'createdAt'
   };
 
@@ -5878,6 +5896,7 @@ export namespace Prisma {
     password?: StringFilter<"Contestant"> | string
     age?: IntFilter<"Contestant"> | number
     prenom?: StringFilter<"Contestant"> | string
+    popularite?: IntFilter<"Contestant"> | number
     createdAt?: DateTimeFilter<"Contestant"> | Date | string
     ratings?: RatingListRelationFilter
   }
@@ -5888,6 +5907,7 @@ export namespace Prisma {
     password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
+    popularite?: SortOrder
     createdAt?: SortOrder
     ratings?: RatingOrderByRelationAggregateInput
   }
@@ -5901,6 +5921,7 @@ export namespace Prisma {
     password?: StringFilter<"Contestant"> | string
     age?: IntFilter<"Contestant"> | number
     prenom?: StringFilter<"Contestant"> | string
+    popularite?: IntFilter<"Contestant"> | number
     createdAt?: DateTimeFilter<"Contestant"> | Date | string
     ratings?: RatingListRelationFilter
   }, "id" | "pseudo">
@@ -5911,6 +5932,7 @@ export namespace Prisma {
     password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
+    popularite?: SortOrder
     createdAt?: SortOrder
     _count?: ContestantCountOrderByAggregateInput
     _avg?: ContestantAvgOrderByAggregateInput
@@ -5928,6 +5950,7 @@ export namespace Prisma {
     password?: StringWithAggregatesFilter<"Contestant"> | string
     age?: IntWithAggregatesFilter<"Contestant"> | number
     prenom?: StringWithAggregatesFilter<"Contestant"> | string
+    popularite?: IntWithAggregatesFilter<"Contestant"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Contestant"> | Date | string
   }
 
@@ -6124,6 +6147,7 @@ export namespace Prisma {
     password?: string
     age: number
     prenom: string
+    popularite?: number
     createdAt?: Date | string
     ratings?: RatingCreateNestedManyWithoutContestantInput
   }
@@ -6134,6 +6158,7 @@ export namespace Prisma {
     password?: string
     age: number
     prenom: string
+    popularite?: number
     createdAt?: Date | string
     ratings?: RatingUncheckedCreateNestedManyWithoutContestantInput
   }
@@ -6143,6 +6168,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ratings?: RatingUpdateManyWithoutContestantNestedInput
   }
@@ -6153,6 +6179,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ratings?: RatingUncheckedUpdateManyWithoutContestantNestedInput
   }
@@ -6163,6 +6190,7 @@ export namespace Prisma {
     password?: string
     age: number
     prenom: string
+    popularite?: number
     createdAt?: Date | string
   }
 
@@ -6171,6 +6199,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6180,6 +6209,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -6414,12 +6444,14 @@ export namespace Prisma {
     password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
+    popularite?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ContestantAvgOrderByAggregateInput = {
     id?: SortOrder
     age?: SortOrder
+    popularite?: SortOrder
   }
 
   export type ContestantMaxOrderByAggregateInput = {
@@ -6428,6 +6460,7 @@ export namespace Prisma {
     password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
+    popularite?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -6437,12 +6470,14 @@ export namespace Prisma {
     password?: SortOrder
     age?: SortOrder
     prenom?: SortOrder
+    popularite?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ContestantSumOrderByAggregateInput = {
     id?: SortOrder
     age?: SortOrder
+    popularite?: SortOrder
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -7167,6 +7202,7 @@ export namespace Prisma {
     password?: string
     age: number
     prenom: string
+    popularite?: number
     createdAt?: Date | string
   }
 
@@ -7176,6 +7212,7 @@ export namespace Prisma {
     password?: string
     age: number
     prenom: string
+    popularite?: number
     createdAt?: Date | string
   }
 
@@ -7240,6 +7277,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -7249,6 +7287,7 @@ export namespace Prisma {
     password?: StringFieldUpdateOperationsInput | string
     age?: IntFieldUpdateOperationsInput | number
     prenom?: StringFieldUpdateOperationsInput | string
+    popularite?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

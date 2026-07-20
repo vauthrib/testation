@@ -80,8 +80,25 @@ export default function HomePage() {
         </a>
       </div>
 
+      {/* Programme */}
+      <div className="w-full bg-yellow-500/5 border border-yellow-500/20 rounded-3xl p-4 space-y-2">
+        <div className="text-center">
+          <span className="text-yellow-300 text-sm font-bold">📅 Programme 2026</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <span className="text-blue-300/60">23 Juil · Fin inscriptions</span>
+          <span className="text-white font-semibold text-right">16h00</span>
+          <span className="text-blue-300/60">24 Juil · Début fabrication</span>
+          <span className="text-white font-semibold text-right">8h30</span>
+          <span className="text-blue-300/60">25 Juil · Mise à l'eau</span>
+          <span className="text-white font-semibold text-right">16h00</span>
+          <span className="text-orange-300">25 Juil · 🔥 Largage amarres</span>
+          <span className="text-white font-bold text-right">20h30</span>
+        </div>
+      </div>
+
       <p className="text-blue-300/30 text-xs text-center mt-4">
-        Water-Barbecue 2026 - Tous droits réservés
+        Water-Barbecue 2026 · 23-25 Juillet · Tous droits réservés
       </p>
     </div>
   );

@@ -9,12 +9,13 @@ datasource db {
 }
 
 model Contestant {
-  id        Int      @id @default(autoincrement())
-  pseudo    String   @unique
-  password  String   @default("")
-  age       Int
-  prenom    String
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  pseudo     String   @unique
+  password   String   @default("")
+  age        Int
+  prenom     String
+  popularite Int      @default(0)
+  createdAt  DateTime @default(now())
 
   ratings Rating[]
 }
