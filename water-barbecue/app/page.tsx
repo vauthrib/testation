@@ -50,13 +50,20 @@ export default function HomePage() {
         </a>
       </div>
 
-      {/* Voir les résultats */}
-      <a
-        href={baseUrl ? `/results` : "#"}
-        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-4 px-6 rounded-2xl text-center hover:from-blue-500 hover:to-cyan-500 transition-all active:scale-[0.98] text-lg"
-      >
-        🏆 Voir le classement
-      </a>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <a
+          href={baseUrl ? `/results` : "#"}
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-4 px-6 rounded-2xl text-center hover:from-blue-500 hover:to-cyan-500 transition-all active:scale-[0.98] text-lg"
+        >
+          🏆 Classement
+        </a>
+        <a
+          href={baseUrl ? `/jury/list` : "#"}
+          className="bg-white/10 border border-white/20 text-white font-bold py-4 px-6 rounded-2xl text-center hover:bg-white/20 transition-all active:scale-[0.98] text-lg"
+        >
+          👥 Jurys & Votes
+        </a>
+      </div>
 
       <p className="text-blue-300/30 text-xs text-center mt-4">
         Water-Barbecue 2026 - Tous droits réservés

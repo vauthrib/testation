@@ -64,6 +64,13 @@ function VoteContent() {
     }
   };
 
+  // Re-trouver le jury quand le pseudo change
+  useEffect(() => {
+    if (jurorPseudo && !showJurorSearch && !jurorId) {
+      findJuror();
+    }
+  }, [jurorPseudo]);
+
   const setNote = (contestantId: number, categoryId: number, value: number) => {
     setRatings((prev) => ({
       ...prev,
@@ -282,10 +289,15 @@ function VoteContent() {
         </div>
       )}
 
-      <div className="text-center">
-        <a href="/results" className="text-blue-300 hover:text-blue-200 text-sm underline">
-          🏆 Voir le classement
-        </a>
+      <div className="text-center space-y-2">
+        <div className="flex gap-3 justify-center">
+          <a href="/results" className="text-blue-300 hover:text-blue-200 text-sm underline">
+            🏆 Classement
+          </a>
+          <a href="/jury/list" className="text-orange-300 hover:text-orange-200 text-sm underline">
+            👥 Jurys
+          </a>
+        </div>
       </div>
     </div>
   );
