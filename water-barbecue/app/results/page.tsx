@@ -28,8 +28,7 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [sortBy, setSortBy] = useState<"general" | string>("general");
-  const [showDetails, setShowDetails] = useState(true);
+  const [fullPhoto, setFullPhoto] = useState<string | null>(null);
 
   const fetchResults = async () => {
     try {
@@ -55,23 +54,11 @@ export default function ResultsPage() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  const hasVotes = data?.results.some((r) => r.moyenneGenerale !== null);
-
-  const getSortedResults = () => {
+  const sortedByGeneral = () => {
     if (!data) return [];
-    let sorted = [...data.results];
-
-    if (sortBy === "general") {
-      sorted.sort((a, b) => (b.moyenneGenerale ?? -1) - (a.moyenneGenerale ?? -1));
-    } else {
-      const catId = parseInt(sortBy);
-      sorted.sort((a, b) => {
-        const aCat = a.categories.find((c) => c.categoryId === catId);
-        const bCat = b.categories.find((c) => c.categoryId === catId);
-        return (bCat?.moyenne ?? -1) - (aCat?.moyenne ?? -1);
-      });
-    }
-    return sorted;
+    return [...data.results].sort(
+      (a, b) => (b.moyenneGenerale ?? -1) - (a.moyenneGenerale ?? -1)
+    );
   };
 
   const getMedal = (index: number) => {
@@ -89,6 +76,17 @@ export default function ResultsPage() {
     return "bg-gradient-to-r from-red-500 to-orange-400";
   };
 
+  // Key handler for Escape key to close photo modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullPhoto(null);
+    };
+    if (fullPhoto) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [fullPhoto]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -100,70 +98,54 @@ export default function ResultsPage() {
     );
   }
 
-  const sortedResults = getSortedResults();
+  const sorted = sortedByGeneral();
 
   return (
     <div className="space-y-4">
+      {/* Modal plein écran photo */}
+      {fullPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setFullPhoto(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img
+              src={fullPhoto}
+              alt="Photo plein écran"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+            />
+            <button
+              onClick={() => setFullPhoto(null)}
+              className="absolute -top-3 -right-3 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-full flex items-center justify-center text-white text-xl transition-all"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <a href="/" className="text-blue-300 hover:text-blue-200 text-sm">← Accueil</a>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className={`text-xs px-3 py-1.5 rounded-full transition-all ${
-              showDetails
-                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                : "bg-white/5 text-blue-300/50 border border-white/10"
-            }`}
-          >
-            {showDetails ? "📊 Vue simple" : "📋 Vue détaillée"}
-          </button>
-          <button
-            onClick={fetchResults}
-            className="text-blue-300 hover:text-blue-200 text-sm bg-white/5 px-3 py-1.5 rounded-xl transition-all"
-          >
-            🔄
-          </button>
-        </div>
+        <button
+          onClick={fetchResults}
+          className="text-blue-300 hover:text-blue-200 text-sm bg-white/5 px-3 py-1.5 rounded-xl transition-all"
+        >
+          🔄
+        </button>
       </div>
 
       <div className="text-center">
         <div className="text-4xl mb-2">🏆</div>
-        <h1 className="text-2xl font-bold text-white">Classement</h1>
+        <h1 className="text-2xl font-bold text-white">Classement général</h1>
         {data && (
-          <p className="text-blue-300 text-sm">
-            {data.results.length} concurrents · {data.totalJurors} jurys
-          </p>
+          <div className="flex items-center justify-center gap-4 text-blue-300 text-sm">
+            <span>{data.results.length} concurrents</span>
+            <span>·</span>
+            <span>{data.totalJurors} jurys</span>
+          </div>
         )}
       </div>
-
-      {/* Filtre de tri */}
-      {data && data.categories.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
-          <button
-            onClick={() => setSortBy("general")}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
-              sortBy === "general"
-                ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                : "bg-white/5 text-blue-300/60 border border-white/10 hover:text-white"
-            }`}
-          >
-            🏆 Général
-          </button>
-          {data.categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSortBy(cat.id.toString())}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 ${
-                sortBy === cat.id.toString()
-                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white"
-                  : "bg-white/5 text-blue-300/60 border border-white/10 hover:text-white"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Auto-refresh toggle */}
       <div className="flex items-center justify-center gap-2">
@@ -175,7 +157,7 @@ export default function ResultsPage() {
               : "bg-white/5 text-blue-300/50 border border-white/10"
           }`}
         >
-          {autoRefresh ? "🔵 Auto-refresh ON" : "⚪ Auto-refresh OFF"}
+          {autoRefresh ? "🔵 Rafraîchissement auto ON" : "⚪ Rafraîchissement auto OFF"}
         </button>
       </div>
 
@@ -183,7 +165,7 @@ export default function ResultsPage() {
         <div className="bg-red-500/10 border border-red-500/30 rounded-3xl p-8 text-center">
           <p className="text-red-300 font-bold">Impossible de charger les résultats</p>
         </div>
-      ) : data && sortedResults.length === 0 ? (
+      ) : !data || sorted.length === 0 ? (
         <div className="bg-white/5 backdrop-blur-lg rounded-3xl p-8 text-center space-y-4">
           <div className="text-5xl">🏄</div>
           <h2 className="text-xl font-bold text-white">Aucun concurrent</h2>
@@ -191,198 +173,230 @@ export default function ResultsPage() {
         </div>
       ) : (
         <>
-          {/* VUE SIMPLIFIÉE : classement avec moyennes générales uniquement */}
-          {!showDetails && (
-            <div className="space-y-3">
-              {sortedResults.map((result, index) => {
-                const hasNotes = result.moyenneGenerale !== null;
-                return (
+          {/* Podium compact en haut */}
+          {sorted.filter(r => r.moyenneGenerale !== null).length > 0 && (
+            <div className="flex gap-2 justify-center">
+              {sorted.slice(0, 3).map((r, i) => (
+                r.moyenneGenerale !== null && (
                   <div
-                    key={result.contestant.id}
-                    className={`rounded-2xl p-4 flex items-center gap-3 transition-all ${
-                      hasNotes
-                        ? "bg-white/5 backdrop-blur-lg border border-white/10 hover:border-blue-500/30"
-                        : "bg-white/[0.02] border border-dashed border-white/5"
+                    key={r.contestant.id}
+                    className={`flex flex-col items-center px-4 py-3 rounded-2xl transition-all ${
+                      i === 0 ? "bg-gradient-to-b from-yellow-400/10 to-transparent border border-yellow-400/30" :
+                      i === 1 ? "bg-gradient-to-b from-gray-300/10 to-transparent border border-gray-300/30" :
+                      "bg-gradient-to-b from-amber-600/10 to-transparent border border-amber-600/30"
                     }`}
                   >
-                    {/* Rang */}
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0">
-                      {hasNotes ? (
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${
-                          index === 0 ? "bg-gradient-to-br from-yellow-400 to-amber-600" :
-                          index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500" :
-                          index === 2 ? "bg-gradient-to-br from-amber-600 to-amber-800" :
-                          "bg-white/10"
-                        } text-white`}>
-                          {getMedal(index)}
-                        </div>
-                      ) : (
-                        <div className="text-blue-300/20 text-sm">{index + 1}</div>
-                      )}
-                    </div>
-
-                    {/* Pseudo */}
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-bold truncate ${hasNotes ? "text-white" : "text-white/40"}`}>
-                        {result.contestant.pseudo}
-                      </div>
-                      <div className={`text-xs ${hasNotes ? "text-blue-300" : "text-blue-300/20"}`}>
-                            {result.contestant.prenom} · {result.nbJurys} jurys
-                            {result.contestant.popularite > 0 && (
-                              <span className="text-pink-400 ml-1">❤️ {result.contestant.popularite}</span>
-                            )}
-                          
-                      </div>
-                    </div>
-
-                    {/* Barre de progression */}
-                    <div className="hidden sm:block flex-1 max-w-[120px]">
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            hasNotes ? getBarColor(result.moyenneGenerale) : ""
-                          }`}
-                          style={{ width: hasNotes ? `${Math.min(100, ((result.moyenneGenerale ?? 0) / 9) * 100)}%` : "0%" }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Score */}
-                    <div className="text-right min-w-[50px]">
-                      {hasNotes ? (
-                        <>
-                          <div className="text-xl font-bold text-white">
-                            {result.moyenneGenerale?.toFixed(1)}
-                          </div>
-                          <div className="text-blue-300/40 text-xs">/9</div>
-                        </>
-                      ) : (
-                        <div className="text-blue-300/20 text-xs text-center">
-                          Pas<br/>noté
-                        </div>
-                      )}
-                    </div>
+                    <span className="text-2xl">{getMedal(i)}</span>
+                    <span className="text-white font-bold text-sm truncate max-w-[80px]">{r.contestant.pseudo}</span>
+                    <span className="text-white text-lg font-bold">{r.moyenneGenerale?.toFixed(1)}</span>
                   </div>
-                );
-              })}
+                )
+              ))}
             </div>
           )}
 
-          {/* VUE DÉTAILLÉE : tableau complet avec toutes les catégories */}
-          {showDetails && data && (
-            <div className="overflow-x-auto -mx-4 px-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-2 pr-2 text-blue-300/60 font-medium text-xs">Rang</th>
-                    <th className="text-left py-2 pr-3 text-blue-300/60 font-medium text-xs">Concurrent</th>
-                    <th className="text-center py-2 px-1 text-blue-300/60 font-medium text-xs">🏆</th>
-                    {data.categories.map((cat) => (
-                      <th key={cat.id} className="text-center py-2 px-1 text-blue-300/60 font-medium text-xs whitespace-nowrap">
-                        {cat.name.length > 8 ? cat.name.slice(0, 8) + "…" : cat.name}
-                      </th>
-                    ))}
-                    <th className="text-center py-2 px-1 text-blue-300/60 font-medium text-xs">📸</th>
-                    <th className="text-center py-2 px-1 text-pink-300/60 font-medium text-xs">❤️</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedResults.map((result, index) => {
-                    const hasNotes = result.moyenneGenerale !== null;
-                    const hasPhotos = result.categories.some(c => c.photos?.length > 0);
-                    const totalPhotos = result.categories.reduce((s, c) => s + (c.photos?.length || 0), 0);
-                    return (
-                      <tr
-                        key={result.contestant.id}
-                        className={`border-b border-white/5 transition-all ${
-                          hasNotes ? "hover:bg-white/5" : "opacity-40"
-                        }`}
-                      >
-                        <td className="py-3 pr-2">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                            index === 0 ? "bg-gradient-to-br from-yellow-400 to-amber-600" :
-                            index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500" :
-                            index === 2 ? "bg-gradient-to-br from-amber-600 to-amber-800" :
-                            "bg-white/10"
-                          } text-white`}>
-                            {index + 1}
+          {/* TABLEAU TRANSPOSÉ : catégories en lignes, concurrents en colonnes */}
+          <div className="overflow-x-auto -mx-4 px-4 pb-4">
+            <table className="w-full text-xs whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="sticky left-0 bg-[#0a0f1e] z-10 text-left py-2 pr-3 text-blue-300/60 font-medium">
+                    Catégorie
+                  </th>
+                  {sorted.map((r) => (
+                    <th key={r.contestant.id} className="text-center py-2 px-1.5 text-blue-300/60 font-medium min-w-[70px]">
+                      <div className="truncate max-w-[70px] mx-auto">{r.contestant.pseudo}</div>
+                      <div className="text-[9px] text-blue-300/30">{r.nbJurys} jurys</div>
+                    </th>
+                  ))}
+                  <th className="text-center py-2 px-1.5 text-blue-300/60 font-medium min-w-[60px]">
+                    Moy.<br/>catégorie
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Ligne rang */}
+                <tr className="border-b border-white/5">
+                  <td className="sticky left-0 bg-[#0a0f1e] z-10 py-2 pr-3 text-blue-300/50 font-medium text-[10px]">
+                    Rang
+                  </td>
+                  {sorted.map((r, idx) => (
+                    <td key={r.contestant.id} className="text-center py-2 px-1.5">
+                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ${
+                        idx === 0 ? "bg-gradient-to-br from-yellow-400 to-amber-600 text-white" :
+                        idx === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-white" :
+                        idx === 2 ? "bg-gradient-to-br from-amber-600 to-amber-800 text-white" :
+                        "bg-white/10 text-blue-300/60"
+                      }`}>
+                        {idx + 1}
+                      </span>
+                    </td>
+                  ))}
+                  <td className="text-center py-2 px-1.5 text-blue-300/30 text-[10px]">
+                    —
+                  </td>
+                </tr>
+
+                {/* Lignes par catégorie */}
+                {data.categories.map((cat) => {
+                  // Calculer la moyenne par catégorie (tous concurrents confondus)
+                  let catTotal = 0;
+                  let catCount = 0;
+                  sorted.forEach((r) => {
+                    const cr = r.categories.find((c) => c.categoryId === cat.id);
+                    if (cr?.moyenne !== null && cr?.moyenne !== undefined) {
+                      catTotal += cr.moyenne;
+                      catCount++;
+                    }
+                  });
+                  const catMoyenne = catCount > 0 ? catTotal / catCount : null;
+
+                  return (
+                    <tr key={cat.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                      <td className="sticky left-0 bg-[#0a0f1e] z-10 py-2 pr-3 text-blue-200 font-medium">
+                        <span className="truncate block max-w-[100px]">{cat.name}</span>
+                      </td>
+                      {sorted.map((r) => {
+                        const cr = r.categories.find((c) => c.categoryId === cat.id);
+                        const val = cr?.moyenne;
+                        const catPhotos = cr?.photos || [];
+                        const hasCatPhoto = catPhotos.length > 0;
+                        return (
+                          <td key={r.contestant.id} className={`text-center py-2 px-1.5 ${hasCatPhoto ? "bg-blue-500/5" : ""}`}>
+                            {val !== null && val !== undefined ? (
+                              <div className="flex flex-col items-center">
+                                <span className="text-white font-bold text-sm">{val.toFixed(1)}</span>
+                                <span className="text-blue-300/30 text-[9px]">({cr!.nbVotes})</span>
+                                {/* Photos dans la cellule */}
+                                {hasCatPhoto && (
+                                  <div className="flex justify-center gap-0.5 mt-0.5">
+                                    {catPhotos.slice(0, 3).map((photo, pi) => (
+                                      <button
+                                        key={pi}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setFullPhoto(photo);
+                                        }}
+                                        className="focus:outline-none"
+                                      >
+                                        <img
+                                          src={photo}
+                                          alt=""
+                                          className="w-6 h-6 rounded object-cover cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+                                        />
+                                      </button>
+                                    ))}
+                                    {catPhotos.length > 3 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setFullPhoto(catPhotos[0]);
+                                        }}
+                                        className="text-[8px] text-blue-300/50 hover:text-blue-300"
+                                      >
+                                        +{catPhotos.length - 3}
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-blue-300/15">·</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center py-2 px-1.5">
+                        {catMoyenne !== null ? (
+                          <div className="flex flex-col items-center">
+                            <span className="text-white font-bold text-sm">{catMoyenne.toFixed(1)}</span>
+                            <div className="h-1 w-8 bg-white/10 rounded-full mt-0.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${getBarColor(catMoyenne)}`}
+                                style={{ width: `${Math.min(100, (catMoyenne / 9) * 100)}%` }}
+                              />
+                            </div>
                           </div>
-                        </td>
-                        <td className="py-3 pr-3">
-                          <div className="font-semibold text-white truncate max-w-[100px]">
-                            {result.contestant.pseudo}
+                        ) : (
+                          <span className="text-blue-300/15">·</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Ligne moyenne générale */}
+                <tr className="border-t-2 border-blue-500/20 bg-blue-500/5">
+                  <td className="sticky left-0 bg-blue-500/10 z-10 py-3 pr-3 text-blue-200 font-bold text-sm">
+                    🏆 Générale
+                  </td>
+                  {sorted.map((r) => (
+                    <td key={r.contestant.id} className="text-center py-3 px-1.5">
+                      {r.moyenneGenerale !== null ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-white font-bold text-base">{r.moyenneGenerale.toFixed(1)}</span>
+                          <div className="h-1.5 w-10 bg-white/10 rounded-full mt-0.5 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${getBarColor(r.moyenneGenerale)}`}
+                              style={{ width: `${Math.min(100, (r.moyenneGenerale / 9) * 100)}%` }}
+                            />
                           </div>
-                          <div className="text-blue-300/40 text-xs">{result.nbJurys} jurys</div>
-                        </td>
-                        <td className="text-center py-3 px-1">
-                          {hasNotes ? (
-                            <span className="text-white font-bold text-base">
-                              {result.moyenneGenerale?.toFixed(1)}
-                            </span>
-                          ) : (
-                            <span className="text-blue-300/20 text-xs">-</span>
-                          )}
-                        </td>
-                        {data.categories.map((cat) => {
-                          const catResult = result.categories.find(
-                            (c) => c.categoryId === cat.id
-                          );
-                          const val = catResult?.moyenne;
-                          const catPhotos = catResult?.photos || [];
-                          const hasCatPhoto = catPhotos.length > 0;
-                          return (
-                            <td key={cat.id} className={`text-center py-3 px-1 relative ${hasCatPhoto ? "bg-blue-500/5" : ""}`}>
-                              {val !== null && val !== undefined ? (
-                                <div className="flex flex-col items-center">
-                                  <span className="text-white font-bold text-xs">
-                                    {val.toFixed(1)}
-                                  </span>
-                                  <span className="text-blue-300/30 text-[10px]">
-                                    ({catResult!.nbVotes})
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-blue-300/15 text-xs">·</span>
-                              )}
-                              {hasCatPhoto && (
-                                <div className="flex justify-center gap-0.5 mt-0.5">
-                                  {catPhotos.slice(0, 2).map((photo, pi) => (
-                                    <div key={pi} className="group relative">
-                                      <img src={photo} alt="" className="w-5 h-5 rounded object-cover cursor-pointer hover:scale-3 transition-transform" />
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
-                                        <img src={photo} alt="Photo" className="w-32 h-32 rounded-lg object-cover border-2 border-blue-400 shadow-xl" />
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {catPhotos.length > 2 && (
-                                    <span className="text-[8px] text-blue-300/50">+{catPhotos.length - 2}</span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td className="text-center py-3 px-1">
-                          {hasPhotos ? (
-                            <span className="text-blue-300 text-xs" title={`${totalPhotos} photo(s)`}>📸</span>
-                          ) : (
-                            <span className="text-blue-300/15 text-xs">·</span>
-                          )}
-                        </td>
-                        <td className="text-center py-3 px-1">
-                          {result.contestant.popularite > 0 ? (
-                            <span className="text-pink-300 font-bold text-xs">{result.contestant.popularite}</span>
-                          ) : (
-                            <span className="text-blue-300/15 text-xs">·</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                        </div>
+                      ) : (
+                        <span className="text-blue-300/30 text-xs">Pas noté</span>
+                      )}
+                    </td>
+                  ))}
+                  <td className="text-center py-3 px-1.5">
+                    {(() => {
+                      const allMoy = sorted.filter(r => r.moyenneGenerale !== null).map(r => r.moyenneGenerale!);
+                      if (allMoy.length === 0) return <span className="text-blue-300/30 text-xs">—</span>;
+                      const generalAvg = allMoy.reduce((a, b) => a + b, 0) / allMoy.length;
+                      return (
+                        <div className="flex flex-col items-center">
+                          <span className="text-white font-bold">{generalAvg.toFixed(1)}</span>
+                          <span className="text-blue-300/30 text-[9px]">{allMoy.length} notés</span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                </tr>
+
+                {/* Ligne popularité */}
+                <tr className="border-t border-white/5">
+                  <td className="sticky left-0 bg-[#0a0f1e] z-10 py-2 pr-3 text-pink-300/60 font-medium">
+                    ❤️ Popularité
+                  </td>
+                  {sorted.map((r) => (
+                    <td key={r.contestant.id} className="text-center py-2 px-1.5">
+                      {r.contestant.popularite > 0 ? (
+                        <span className="text-pink-300 font-bold">{r.contestant.popularite}</span>
+                      ) : (
+                        <span className="text-blue-300/15">·</span>
+                      )}
+                    </td>
+                  ))}
+                  <td className="text-center py-2 px-1.5">
+                    {(() => {
+                      const totalPop = sorted.reduce((s, r) => s + r.contestant.popularite, 0);
+                      return totalPop > 0 ? (
+                        <span className="text-pink-300 font-bold">{totalPop}</span>
+                      ) : (
+                        <span className="text-blue-300/15">·</span>
+                      );
+                    })()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Légende */}
+          <div className="text-center text-[10px] text-blue-300/30 space-y-1">
+            <p>Catégories en lignes · Concurrents en colonnes · (nombre) = votes reçus</p>
+            <p>📸 Photo dans le vote → coefficient ×3 pour ce jury</p>
+            <p>Cliquez sur une photo pour l&apos;afficher en plein écran</p>
+          </div>
         </>
       )}
 
@@ -402,11 +416,6 @@ export default function ResultsPage() {
             👥 Jurys
           </a>
         </div>
-        <p className="text-blue-300/20 text-xs">
-          {showDetails
-            ? "Vue détaillée — chaque colonne = une catégorie"
-            : "Vue simplifiée — bascule en « Vue détaillée » pour tout voir"}
-        </p>
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
             categoryId: r.categoryId,
           },
         },
-        update: { value: r.value },
+        update: { value: r.value, photoUrl: r.photoUrl || null },
         create: {
           contestantId,
           jurorId,

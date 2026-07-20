@@ -26,13 +26,16 @@ export async function GET() {
         }
 
         // Moyenne pondérée par le coefficient du jury
+        // Si un jury ajoute une photo → son vote est x3 pour ce concurrent
         let totalPondere = 0;
         let totalCoeff = 0;
         const photos: string[] = [];
 
         for (const r of catRatings) {
-          totalPondere += r.value * r.juror.coeff;
-          totalCoeff += r.juror.coeff;
+          const coefPhoto = r.photoUrl ? 3 : 1;
+          const coeffEffectif = r.juror.coeff * coefPhoto;
+          totalPondere += r.value * coeffEffectif;
+          totalCoeff += coeffEffectif;
           if (r.photoUrl) photos.push(r.photoUrl);
         }
 
