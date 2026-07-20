@@ -180,7 +180,7 @@ const config = {
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
+    "rootEnvPath": "../../.env",
     "schemaEnvPath": "../../.env"
   },
   "relativePath": "../../prisma",
@@ -190,6 +190,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -200,7 +201,7 @@ const config = {
   },
   "inlineSchema": "generator client {\n  provider = \"prisma-client-js\"\n  output   = \"../lib/generated\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel Contestant {\n  id         Int      @id @default(autoincrement())\n  pseudo     String   @unique\n  password   String   @default(\"\")\n  age        Int\n  prenom     String\n  popularite Int      @default(0)\n  createdAt  DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Juror {\n  id               Int      @id @default(autoincrement())\n  pseudo           String   @unique\n  email            String   @default(\"\")\n  type             String // DONNATEUR, FAMILY, CURIEUX\n  coeff            Int      @default(2) // 6=donnateur, 4=family, 2=curieux\n  validated        Boolean  @default(false)\n  validationsCount Int      @default(0)\n  createdAt        DateTime @default(now())\n\n  ratings Rating[]\n}\n\nmodel Category {\n  id   Int    @id @default(autoincrement())\n  name String @unique\n\n  ratings Rating[]\n}\n\nmodel Rating {\n  id           Int      @id @default(autoincrement())\n  contestantId Int\n  jurorId      Int\n  categoryId   Int\n  value        Int // 1-9\n  photoUrl     String? // photo optionnelle pour booster le vote\n  createdAt    DateTime @default(now())\n\n  contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)\n  juror      Juror      @relation(fields: [jurorId], references: [id], onDelete: Cascade)\n  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)\n\n  @@unique([contestantId, jurorId, categoryId])\n}\n",
   "inlineSchemaHash": "99905ef9c73864c9e6b066ffc009a0dc5914c884a30da54f2baa9c521520f6c4",
-  "copyEngine": true
+  "copyEngine": false
 }
 config.dirname = '/'
 
