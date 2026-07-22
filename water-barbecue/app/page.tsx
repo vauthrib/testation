@@ -10,7 +10,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-6 min-h-screen flex flex-col items-center justify-center">
+    <div className="space-y-5 min-h-screen flex flex-col items-center justify-center">
       {/* Header */}
       <div className="text-center animate-float">
         <div className="text-5xl mb-2">🚤🔥</div>
@@ -19,8 +19,40 @@ export default function HomePage() {
         <p className="text-blue-300/60 text-sm mt-1">Votez pour votre équipage préféré !</p>
       </div>
 
+      {/* Programme en haut - avec plus de couleurs */}
+      <div className="w-full bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/30 rounded-3xl p-4 space-y-2 animate-pulse-glow">
+        <div className="text-center">
+          <span className="text-yellow-300 text-sm font-bold">📅 Programme 2026</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>
+            <span className="text-blue-300/60">23 Juil · Fin inscriptions</span>
+          </div>
+          <span className="text-white font-semibold text-right">16h00</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
+            <span className="text-blue-300/60">24 Juil · Début fabrication</span>
+          </div>
+          <span className="text-white font-semibold text-right">8h30</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span>
+            <span className="text-blue-300/60">25 Juil · Mise à l'eau</span>
+          </div>
+          <span className="text-white font-semibold text-right">16h00</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block"></span>
+            <span className="text-orange-300 font-semibold">25 Juil · 🔥 Largage amarres</span>
+          </div>
+          <span className="text-white font-bold text-right">20h30</span>
+        </div>
+        <div className="mt-2 pt-2 border-t border-yellow-500/20 text-center">
+          <span className="text-blue-300/40 text-[10px]">23 au 25 Juillet 2026</span>
+        </div>
+      </div>
+
       {/* QR Codes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-2">
         {/* QR Concurrent */}
         <a
           href={baseUrl ? `/register/contestant` : "#"}
@@ -65,6 +97,22 @@ export default function HomePage() {
         </a>
       </div>
 
+      {/* Nouvelle section : Règlement et Comptage */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <a
+          href={baseUrl ? `/reglement` : "#"}
+          className="bg-gradient-to-r from-yellow-600/30 to-orange-600/30 border border-yellow-500/30 text-yellow-200 font-bold py-4 px-6 rounded-2xl text-center hover:from-yellow-600/40 hover:to-orange-600/40 transition-all active:scale-[0.98] text-base"
+        >
+          📋 Règlement de course
+        </a>
+        <a
+          href={baseUrl ? `/comptage` : "#"}
+          className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500/30 text-purple-200 font-bold py-4 px-6 rounded-2xl text-center hover:from-purple-600/40 hover:to-pink-600/40 transition-all active:scale-[0.98] text-base"
+        >
+          🧮 Méthode de calcul
+        </a>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
         <a
           href={baseUrl ? `/contestant/login` : "#"}
@@ -78,23 +126,6 @@ export default function HomePage() {
         >
           🔧 Administration
         </a>
-      </div>
-
-      {/* Programme */}
-      <div className="w-full bg-yellow-500/5 border border-yellow-500/20 rounded-3xl p-4 space-y-2">
-        <div className="text-center">
-          <span className="text-yellow-300 text-sm font-bold">📅 Programme 2026</span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <span className="text-blue-300/60">23 Juil · Fin inscriptions</span>
-          <span className="text-white font-semibold text-right">16h00</span>
-          <span className="text-blue-300/60">24 Juil · Début fabrication</span>
-          <span className="text-white font-semibold text-right">8h30</span>
-          <span className="text-blue-300/60">25 Juil · Mise à l'eau</span>
-          <span className="text-white font-semibold text-right">16h00</span>
-          <span className="text-orange-300">25 Juil · 🔥 Largage amarres</span>
-          <span className="text-white font-bold text-right">20h30</span>
-        </div>
       </div>
 
       <p className="text-blue-300/30 text-xs text-center mt-4">
