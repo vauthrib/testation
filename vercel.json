@@ -3,5 +3,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "outputDirectory": "water-barbecue/.next"
+  "outputDirectory": ".next"
 }
